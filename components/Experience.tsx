@@ -328,7 +328,7 @@ function Experience() {
     <section
       ref={sectionRef}
       id="experience"
-      className="relative overflow-hidden bg-[var(--black)]"
+      className="experience-section relative overflow-hidden bg-[var(--black)]"
       style={{ padding: '120px 0 72px' }}
     >
       <div
@@ -336,8 +336,9 @@ function Experience() {
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(200,169,110,0.1),transparent_30%)]"
       />
 
-      <div style={{ width: '100%', position: 'relative' }}>
+      <div className="experience-shell" style={{ width: '100%', position: 'relative' }}>
         <div
+          className="experience-grid"
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1.4fr',
@@ -347,6 +348,7 @@ function Experience() {
         >
           {/* Left column */}
           <div
+            className="experience-left-col"
             style={{
               padding: '80px 60px 24px 80px',
               borderRight: '1px solid rgba(201,168,76,0.1)',
@@ -526,7 +528,7 @@ function Experience() {
           </div>
 
           {/* Right column */}
-          <div style={{ padding: '80px 80px 24px 60px' }}>
+          <div className="experience-right-col" style={{ padding: '80px 80px 24px 60px' }}>
             {CHAPTERS.map((ch, index) => (
               <div
                 key={ch.company}

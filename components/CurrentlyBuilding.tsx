@@ -9,7 +9,7 @@ const STATUS_ITEMS = [
 export default function CurrentlyBuilding() {
   return (
     <section
-      className="reveal"
+      className="reveal currently-building-section"
       style={{
         background: 'rgba(201,168,76,0.03)',
         borderTop: '1px solid rgba(201,168,76,0.15)',
@@ -18,6 +18,7 @@ export default function CurrentlyBuilding() {
       }}
     >
       <div
+        className="currently-building-shell"
         style={{
           width: '100%',
           padding: '0 80px',
@@ -45,6 +46,7 @@ export default function CurrentlyBuilding() {
             }}
           />
           <div
+            className="currently-building-grid"
             style={{
               position: 'relative',
               zIndex: 1,
@@ -54,7 +56,7 @@ export default function CurrentlyBuilding() {
             }}
           >
             {/* Left feature card */}
-            <div style={{ padding: '42px 44px' }}>
+            <div className="currently-building-left" style={{ padding: '42px 44px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '22px' }}>
                 <span
                   style={{
@@ -138,6 +140,7 @@ export default function CurrentlyBuilding() {
 
             {/* Right telemetry panel */}
             <div
+              className="currently-building-right"
               style={{
                 borderLeft: '1px solid rgba(201,168,76,0.16)',
                 background: 'rgba(8,8,8,0.55)',

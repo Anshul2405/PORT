@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react'
 import StageLeft from './how-i-build/StageLeft'
+import MobileMacPreview from './how-i-build/MobileMacPreview'
 
 interface Stage {
   id: number
@@ -196,18 +197,10 @@ export default function HowIBuild({ onStageChange }: { onStageChange?: (stage: n
           />
         </header>
 
-        <div className="hib-mobile-mac" aria-hidden>
-          <div className="hib-mobile-mac-toolbar">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="hib-mobile-mac-screen">
-            <p className="hib-mobile-mac-kicker">MAC PREVIEW</p>
-            <p className="hib-mobile-mac-stage">{`STAGE ${String(activeStage + 1).padStart(2, '0')}`}</p>
-            <p className="hib-mobile-mac-title">{STAGES[activeStage]?.title}</p>
-          </div>
-        </div>
+        <MobileMacPreview
+          stageNumber={String(activeStage + 1).padStart(2, '0')}
+          stageTitle={STAGES[activeStage]?.title ?? ''}
+        />
 
         <div
           className="hib-stage-row"
