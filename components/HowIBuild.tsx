@@ -197,10 +197,7 @@ export default function HowIBuild({ onStageChange }: { onStageChange?: (stage: n
           />
         </header>
 
-        <MobileMacPreview
-          stageNumber={String(activeStage + 1).padStart(2, '0')}
-          stageTitle={STAGES[activeStage]?.title ?? ''}
-        />
+        <MobileMacPreview />
 
         <div
           className="hib-stage-row"
