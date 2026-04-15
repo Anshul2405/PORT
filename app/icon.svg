@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 32 32">
+  <title>AR</title>
+  <defs>
+    <mask id="m" maskUnits="userSpaceOnUse">
+      <image
+        xlink:href="/brand/ar-crest-mask.png"
+        href="/brand/ar-crest-mask.png"
+        x="1"
+        y="5"
+        width="30"
+        height="22.5"
+        preserveAspectRatio="xMidYMid meet"
+      />
+    </mask>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="#000000"/>
+  <rect width="32" height="32" fill="#c9a84c" mask="url(#m)"/>
+</svg>
