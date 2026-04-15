@@ -325,8 +325,10 @@ function MacBookOverlay({ howIBuildStage }: { howIBuildStage: number }) {
         position: 'fixed',
         top: 0,
         right: 0,
-        width: '58%',
-        height: '100vh',
+        width: 'clamp(500px, 52vw, 980px)',
+        minWidth: 'min(500px, 100vw)',
+        maxWidth: '100vw',
+        height: '100dvh',
         zIndex: 10,
         overflow: 'visible',
         cursor: 'grab',
@@ -365,7 +367,7 @@ function MacBookOverlay({ howIBuildStage }: { howIBuildStage: number }) {
         </div>
       )}
       <Canvas
-        camera={{ position: [0, 0.4, 5.8], fov: 30 }}
+        camera={{ position: [0, 0.36, 6.2], fov: 31 }}
         gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
         dpr={[1, 2]}
         onCreated={({ gl }) => {
@@ -404,7 +406,7 @@ function MacBookOverlay({ howIBuildStage }: { howIBuildStage: number }) {
 }
 
 /** Fixed 3D MacBook reserves ~58% of the viewport — only show on wide screens so phones/tablets stay readable. */
-const MACBOOK_MIN_WIDTH = 1280
+const MACBOOK_MIN_WIDTH = 1180
 
 function subscribeMacbookViewport(cb: () => void) {
   const mq = window.matchMedia(`(min-width: ${MACBOOK_MIN_WIDTH}px)`)
@@ -418,10 +420,8 @@ function getMacbookViewportWideEnough() {
 
 export default function SharedMacBook({
   howIBuildStage,
-  disabled = false,
 }: {
   howIBuildStage: number
-  disabled?: boolean
 }) {
   const wideEnough = useSyncExternalStore(
     subscribeMacbookViewport,
@@ -429,7 +429,7 @@ export default function SharedMacBook({
     () => false,
   )
 
-  if (disabled || !wideEnough) return null
+  if (!wideEnough) return null
   return createPortal(
     <MacBookOverlay howIBuildStage={howIBuildStage} />,
     document.body,

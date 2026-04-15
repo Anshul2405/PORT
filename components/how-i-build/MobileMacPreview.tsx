@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { useGLTF } from '@react-three/drei'
+import { OrbitControls, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { SCREEN_W, SCREEN_H, TEX_SCALE, buildHeroScreenCanvas, drawHeroPhoto } from '@/lib/macbook-screens'
 
@@ -102,8 +102,8 @@ export default function MobileMacPreview() {
       <div className="hib-mobile-mac-canvas-wrap">
         <Canvas
           camera={{ position: [0, 0.34, 4.5], fov: 31 }}
-          gl={{ antialias: false, alpha: true, powerPreference: 'low-power' }}
-          dpr={[1, 1.25]}
+          gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+          dpr={[1, 2]}
           style={{ width: '100%', height: '100%', background: 'transparent' }}
         >
           <ambientLight intensity={0.58} />
@@ -113,6 +113,16 @@ export default function MobileMacPreview() {
           <Suspense fallback={null}>
             <MobileMacModel />
           </Suspense>
+          <OrbitControls
+            target={[0, 0.25, 0]}
+            enablePan={false}
+            enableZoom={false}
+            enableDamping
+            dampingFactor={0.08}
+            rotateSpeed={0.45}
+            minPolarAngle={Math.PI / 2.4}
+            maxPolarAngle={Math.PI / 1.95}
+          />
         </Canvas>
       </div>
     </div>

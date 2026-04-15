@@ -55,7 +55,7 @@ export default function Home() {
       {!performanceLite && <CustomCursor />}
       <ScrollProgressBar />
       <TerminalOverlay />
-      <SharedMacBook howIBuildStage={hibStage} disabled={performanceLite} />
+      <SharedMacBook howIBuildStage={hibStage} />
       {!isLoaded && <Loader onComplete={() => setIsLoaded(true)} />}
       <main aria-hidden={!isLoaded} className="relative min-w-0 w-full overflow-x-clip">
         <Navbar />
