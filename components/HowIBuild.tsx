@@ -196,6 +196,19 @@ export default function HowIBuild({ onStageChange }: { onStageChange?: (stage: n
           />
         </header>
 
+        <div className="hib-mobile-mac" aria-hidden>
+          <div className="hib-mobile-mac-toolbar">
+            <span />
+            <span />
+            <span />
+          </div>
+          <div className="hib-mobile-mac-screen">
+            <p className="hib-mobile-mac-kicker">MAC PREVIEW</p>
+            <p className="hib-mobile-mac-stage">{`STAGE ${String(activeStage + 1).padStart(2, '0')}`}</p>
+            <p className="hib-mobile-mac-title">{STAGES[activeStage]?.title}</p>
+          </div>
+        </div>
+
         <div
           className="hib-stage-row"
           style={{
