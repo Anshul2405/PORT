@@ -3,6 +3,7 @@
 import { useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
+import { usePerformanceLiteMode } from '@/lib/use-performance-mode'
 
 const vertexShader = `
 varying vec2 vUv;
@@ -77,6 +78,21 @@ function GoldPlane() {
 }
 
 export default function HeroGoldBackdrop() {
+  const performanceLite = usePerformanceLiteMode()
+
+  if (performanceLite) {
+    return (
+      <div
+        className="pointer-events-none absolute inset-0 z-0"
+        aria-hidden
+        style={{
+          background:
+            'radial-gradient(circle at 72% 45%, rgba(201, 168, 76, 0.14) 0%, rgba(201, 168, 76, 0.03) 28%, transparent 60%)',
+        }}
+      />
+    )
+  }
+
   return (
     <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
       <Canvas

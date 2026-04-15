@@ -62,6 +62,7 @@ export default function About() {
     <section
       ref={sectionRef}
       id="about"
+      className="about-section"
       style={{
         position: 'relative',
         overflow: 'hidden',
@@ -165,6 +166,7 @@ function IdentityBlock({ labelRef }: { labelRef: RefObject<HTMLParagraphElement 
 
       <div ref={headlineRef}>
         <h2
+          className="about-identity-line about-identity-line-1"
           style={{
             ...identityLineStyle('var(--white)'),
             display: 'block',
@@ -175,6 +177,7 @@ function IdentityBlock({ labelRef }: { labelRef: RefObject<HTMLParagraphElement 
         </h2>
 
         <h2
+          className="about-identity-line about-identity-line-2"
           style={{
             ...identityLineStyle('var(--gold)'),
             display: 'block',
@@ -185,6 +188,7 @@ function IdentityBlock({ labelRef }: { labelRef: RefObject<HTMLParagraphElement 
         </h2>
 
         <h2
+          className="about-identity-line about-identity-line-3"
           style={{
             ...identityLineStyle('var(--white)'),
             display: 'block',
@@ -248,13 +252,13 @@ function StatsRow() {
   return (
     <div
       ref={rowRef}
+      className="about-impact-grid max-[900px]:flex-wrap"
       style={{
         marginTop: 100,
         display: 'flex',
         gap: 28,
         justifyContent: 'space-between',
       }}
-      className="max-[900px]:flex-wrap"
     >
       {[
         { number: '10+', label: 'PROJECTS SHIPPED' },
@@ -324,13 +328,13 @@ function SplitColumns() {
   return (
     <div
       ref={splitRef}
+      className="about-main-split max-[980px]:grid-cols-1 max-[980px]:gap-12"
       style={{
         marginTop: 100,
         display: 'grid',
         gridTemplateColumns: 'minmax(380px, 1.1fr) minmax(320px, 0.9fr)',
         gap: 96,
       }}
-      className="max-[980px]:grid-cols-1 max-[980px]:gap-12"
     >
       <div>
         <div style={headerWithAccentStyle}>

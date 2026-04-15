@@ -91,7 +91,7 @@ function Projects() {
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_18%,rgba(200,169,110,0.12),transparent_28%)]" />
 
-      <div style={{ width: '100%', position: 'relative', padding: '0 80px' }}>
+      <div className="projects-shell" style={{ width: '100%', position: 'relative', padding: '0 80px' }}>
         {/* Header */}
         <div style={{ marginBottom: '64px' }}>
           <p
@@ -158,7 +158,7 @@ function Projects() {
                   background: 'rgba(201,168,76,0.2)',
                 }} />
 
-                <div style={{
+                <div className="project-grid" style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1.4fr',
                   padding: '48px 0',
@@ -191,7 +191,7 @@ function Projects() {
                     }}>
                       {project.id}
                     </span>
-                    <h3 style={{
+                    <h3 className="project-title" style={{
                       fontFamily: 'var(--font-display)',
                       fontWeight: 700,
                       fontSize: '2.8rem',
@@ -231,7 +231,7 @@ function Projects() {
                   </div>
 
                   {/* Right */}
-                  <div style={{
+                  <div className="project-right-col" style={{
                     paddingLeft: '96px',
                     display: 'flex',
                     flexDirection: 'column',
@@ -271,7 +271,7 @@ function Projects() {
                     </p>
 
                     {/* Links */}
-                    <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                    <div className="project-links-row" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                       {project.links.map((link) =>
                         link.href ? (
                           <MagneticButton

@@ -17,12 +17,14 @@ import CustomCursor from '@/components/CustomCursor'
 import NavDots from '@/components/NavDots'
 import { TerminalProvider } from '@/lib/terminal-context'
 import TerminalOverlay from '@/components/TerminalOverlay'
+import { usePerformanceLiteMode } from '@/lib/use-performance-mode'
 
 const SharedMacBook = dynamic(() => import('@/components/SharedMacBook'), { ssr: false })
 
 export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [hibStage, setHibStage] = useState(0)
+  const performanceLite = usePerformanceLiteMode()
   const handleStageChange = useCallback((stage: number) => setHibStage(stage), [])
 
   useEffect(() => {
@@ -43,12 +45,17 @@ export default function Home() {
     return () => observer.disconnect()
   }, [isLoaded])
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('perf-lite', performanceLite)
+    return () => document.documentElement.classList.remove('perf-lite')
+  }, [performanceLite])
+
   return (
     <TerminalProvider>
-      <CustomCursor />
+      {!performanceLite && <CustomCursor />}
       <ScrollProgressBar />
       <TerminalOverlay />
-      <SharedMacBook howIBuildStage={hibStage} />
+      <SharedMacBook howIBuildStage={hibStage} disabled={performanceLite} />
       {!isLoaded && <Loader onComplete={() => setIsLoaded(true)} />}
       <main aria-hidden={!isLoaded} className="relative min-w-0 w-full overflow-x-clip">
         <Navbar />

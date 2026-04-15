@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useRef, useEffect, useState } from 'react'
+import { Suspense, useRef, useEffect, useSyncExternalStore, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { useGLTF, OrbitControls } from '@react-three/drei'
@@ -403,11 +403,33 @@ function MacBookOverlay({ howIBuildStage }: { howIBuildStage: number }) {
   )
 }
 
-export default function SharedMacBook({ howIBuildStage }: { howIBuildStage: number }) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
+/** Fixed 3D MacBook reserves ~58% of the viewport — only show on wide screens so phones/tablets stay readable. */
+const MACBOOK_MIN_WIDTH = 1280
 
-  if (!mounted) return null
+function subscribeMacbookViewport(cb: () => void) {
+  const mq = window.matchMedia(`(min-width: ${MACBOOK_MIN_WIDTH}px)`)
+  mq.addEventListener('change', cb)
+  return () => mq.removeEventListener('change', cb)
+}
+
+function getMacbookViewportWideEnough() {
+  return window.matchMedia(`(min-width: ${MACBOOK_MIN_WIDTH}px)`).matches
+}
+
+export default function SharedMacBook({
+  howIBuildStage,
+  disabled = false,
+}: {
+  howIBuildStage: number
+  disabled?: boolean
+}) {
+  const wideEnough = useSyncExternalStore(
+    subscribeMacbookViewport,
+    getMacbookViewportWideEnough,
+    () => false,
+  )
+
+  if (disabled || !wideEnough) return null
   return createPortal(
     <MacBookOverlay howIBuildStage={howIBuildStage} />,
     document.body,

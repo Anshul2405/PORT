@@ -206,6 +206,7 @@ export default function HowIBuild({ onStageChange }: { onStageChange?: (stage: n
           }}
         >
           <nav
+            className="hib-stage-nav"
             aria-label="Build stages"
             style={{
               flexShrink: 0,
@@ -223,6 +224,7 @@ export default function HowIBuild({ onStageChange }: { onStageChange?: (stage: n
               return (
                 <div
                   key={i}
+                  className={`hib-nav-step${isActive ? ' hib-nav-step--active' : ''}`}
                   style={{
                     fontFamily: "'JetBrains Mono', var(--font-mono)",
                     fontSize: 'clamp(10px, 1vw, 11px)',
@@ -260,6 +262,7 @@ export default function HowIBuild({ onStageChange }: { onStageChange?: (stage: n
                 }}
               >
                 <div
+                  className="hib-stage-watermark"
                   style={{
                     position: 'absolute',
                     top: '0',

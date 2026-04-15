@@ -276,6 +276,31 @@ button,
   }
 }
 
+@media (max-width: 900px) {
+  .about-section {
+    padding: 110px 0 !important;
+  }
+
+  .about-identity-line {
+    margin-left: 0 !important;
+    font-size: clamp(2.2rem, 10vw, 3.1rem) !important;
+    line-height: 0.98 !important;
+  }
+
+  .about-impact-grid > * {
+    min-width: 0 !important;
+  }
+
+  .about-impact-grid p {
+    white-space: normal !important;
+  }
+
+  .about-main-split {
+    grid-template-columns: 1fr !important;
+    gap: 2.5rem !important;
+  }
+}
+
 /* Hero — fit narrow viewports; center stack on small screens */
 .hero-section {
   min-height: 100vh;
@@ -361,6 +386,15 @@ button,
   pointer-events: none;
   z-index: 9999;
   animation: grain 0.5s steps(1) infinite;
+}
+
+.perf-lite .noise::after {
+  animation: none;
+  opacity: 0.015;
+}
+
+.perf-lite .nav-logo-revolve {
+  animation-duration: 14s;
 }
 
 @keyframes grain {
@@ -703,6 +737,14 @@ button,
   box-sizing: border-box;
 }
 
+/* Below xl: 3D MacBook is hidden — reclaim horizontal space (was padding for the fixed canvas). */
+@media (max-width: 1279px) {
+  .hib-section-inner {
+    padding-right: max(env(safe-area-inset-right, 0px), clamp(16px, 5vw, 40px));
+    padding-left: max(env(safe-area-inset-left, 0px), clamp(20px, 5vw, 40px));
+  }
+}
+
 @media (max-width: 900px) {
   .hib-section-inner {
     padding-right: clamp(12px, 5vw, 28px);
@@ -721,6 +763,90 @@ button,
 
   .hib-stage-row {
     justify-content: center !important;
+  }
+}
+
+/* How I build — tablets / narrow: stack stage nav + content; avoid side-by-side crunch */
+@media (max-width: 1024px) {
+  .hib-stage-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: clamp(20px, 4vw, 28px);
+  }
+
+  .hib-stage-nav {
+    position: relative !important;
+    top: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    padding-top: 0 !important;
+    gap: 6px 14px !important;
+  }
+
+  .hib-stage-nav .hib-nav-step {
+    border-left: none !important;
+    padding-left: 0 !important;
+    padding-bottom: 4px !important;
+    border-bottom: 2px solid transparent !important;
+    white-space: normal !important;
+    text-align: center !important;
+  }
+
+  .hib-stage-nav .hib-nav-step--active {
+    border-bottom-color: #c9a84c !important;
+  }
+
+  #how-i-build article[data-hib-stage] {
+    min-height: min(72vh, 640px) !important;
+    scroll-margin-top: calc(var(--nav-h) + env(safe-area-inset-top, 0px) + 8px);
+  }
+
+  .hib-stage-watermark {
+    font-size: clamp(3.25rem, 16vw, 5.5rem) !important;
+    right: 0 !important;
+  }
+}
+
+@media (max-width: 640px) {
+  #how-i-build article[data-hib-stage] {
+    min-height: auto !important;
+    padding-bottom: 2.5rem !important;
+  }
+
+  :root {
+    --nav-h: 4.5rem;
+  }
+}
+
+/* Projects section mobile/tablet layout fixes */
+@media (max-width: 1024px) {
+  .projects-shell {
+    padding-left: clamp(18px, 5vw, 30px) !important;
+    padding-right: clamp(18px, 5vw, 30px) !important;
+  }
+
+  .project-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.6rem !important;
+    padding: 32px 0 !important;
+  }
+
+  .project-right-col {
+    padding-left: 0 !important;
+  }
+
+  .project-links-row {
+    flex-wrap: wrap;
+    row-gap: 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .project-title {
+    font-size: clamp(1.8rem, 9vw, 2.3rem) !important;
   }
 }
 
