@@ -31,11 +31,19 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Anshul Raibole — Fullstack × AI Engineer',
+  title: 'Anshul Raibole',
   description: 'Fullstack Software Engineer and AI/Data Science Engineer. Project Lead at KCC Infra. Specializing in Generative AI, Digital Twin Systems, and mission-critical software.',
   metadataBase: new URL(SITE_URL),
+  icons: {
+    icon: [
+      { url: '/favicon.ico', type: 'image/x-icon' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/apple-icon.png',
+  },
   openGraph: {
-    title: 'Anshul Raibole — Fullstack × AI Engineer',
+    title: 'Anshul Raibole',
     description: 'Engineering Intelligence. Building Systems that Matter.',
     url: SITE_URL,
     siteName: 'Anshul Raibole',
@@ -44,7 +52,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Anshul Raibole — Fullstack × AI Engineer',
+    title: 'Anshul Raibole',
     description: 'Engineering Intelligence. Building Systems that Matter.',
   },
   robots: {
