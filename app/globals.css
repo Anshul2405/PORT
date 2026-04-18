@@ -1035,32 +1035,43 @@ body {
     width: clamp(260px, 52vw, 580px) !important;
     min-width: unset !important;
   }
+
+  /* Nav dots sit at z-index 100 and completely cover the MacBook — hide them */
+  [aria-label="Section navigation"] {
+    display: none !important;
+  }
 }
 
 /* Re-enable desktop side-by-side layout: text left, MacBook right */
 @media (orientation: landscape) and (max-width: 1179px) and (pointer: coarse) {
   .hero-section {
+    display: flex !important;
+    flex-direction: row !important;
     align-items: center !important;
     justify-content: flex-start !important;
-    padding-top: max(3rem, env(safe-area-inset-top, 0px) + 2rem) !important;
-    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
+    /* Enough top padding so centered content clears the ~68px navbar */
+    padding-top: max(72px, env(safe-area-inset-top, 0px) + 68px) !important;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px) + 0.5rem) !important;
   }
 
   .hero-section .hero-left {
-    position: absolute !important;
-    left: clamp(0.75rem, 2.5vw, 1.5rem) !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
+    /* Use relative so it's a flex item — hero section align-items:center takes care of vertical centering */
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    margin-left: clamp(0.75rem, 2.5vw, 1.5rem) !important;
     width: clamp(190px, 44vw, 380px) !important;
     max-width: clamp(190px, 44vw, 380px) !important;
     text-align: left !important;
     align-items: flex-start !important;
-    padding: clamp(10px, 2vw, 18px) clamp(10px, 2vw, 18px) !important;
-    /* Solid bg avoids expensive GPU backdrop-filter compositing on mobile */
-    background: rgba(8, 8, 8, 0.78) !important;
+    padding: clamp(10px, 2vw, 16px) clamp(10px, 2vw, 16px) !important;
+    background: rgba(8, 8, 8, 0.84) !important;
     border-radius: 14px !important;
     border: 1px solid rgba(201, 168, 76, 0.14) !important;
     box-shadow: 0 2px 24px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(201,168,76,0.08) !important;
+    /* Sits above the MacBook canvas (z-index: 10) */
+    z-index: 20 !important;
   }
 
   .hero-section .hero-name-block div {
