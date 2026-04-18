@@ -51,6 +51,8 @@ function MacBookModel({ howIBuildStage, isMobileLandscape }: { howIBuildStage: n
   useEffect(() => { isMobileLandscapeRef.current = isMobileLandscape }, [isMobileLandscape])
   // Scroll render throttle: on mobile we cap scroll-driven renders at ~20fps
   const lastScrollRenderRef = useRef(0)
+  // Mobile float: setInterval handle (15fps sine wave, replaces GSAP float on mobile)
+  const mobileFloatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     const group = groupRef.current
@@ -93,8 +95,11 @@ function MacBookModel({ howIBuildStage, isMobileLandscape }: { howIBuildStage: n
     const px = getMacbookDisplayCanvasSize(screenMesh)
 
     const displayCanvas = document.createElement('canvas')
-    displayCanvas.width = px.width
-    displayCanvas.height = px.height
+    // On mobile landscape, halve the display canvas — cuts 2D draw + GPU texture
+    // upload cost by 4×. Barely visible at 375px viewport height with DPR=1.
+    const canvasScale = isMobileLandscape ? 0.5 : 1
+    displayCanvas.width = Math.round(px.width * canvasScale)
+    displayCanvas.height = Math.round(px.height * canvasScale)
     displayCanvasRef.current = displayCanvas
     const dCtx = displayCanvas.getContext('2d')!
     displayCtxRef.current = dCtx
@@ -147,8 +152,10 @@ function MacBookModel({ howIBuildStage, isMobileLandscape }: { howIBuildStage: n
     group.position.set(0, reduce ? 0.5 : 1.02, reduce ? 0 : 0.07)
     group.rotation.set(reduce ? 0.06 : 0.11, reduce ? -0.2 : -0.3, reduce ? 0 : 0.018)
 
+    // Mobile gets a faster entrance (fewer 60fps renders during animation)
+    const mob = isMobileLandscape
     // onUpdate: invalidate so demand frameloop renders each tween step
-    const tl = gsap.timeline({ delay: reduce ? 0.12 : 0.42, onUpdate: invalidate })
+    const tl = gsap.timeline({ delay: reduce ? 0.12 : mob ? 0.18 : 0.42, onUpdate: invalidate })
     tlRef.current = tl
     const mat = screenMaterialRef.current
 
@@ -158,30 +165,42 @@ function MacBookModel({ howIBuildStage, isMobileLandscape }: { howIBuildStage: n
       tl.call(() => { animDone.current = true }, [], 0.42)
 
     } else {
-      tl.to(group.position, { y: 0.4, z: 0, duration: 1.22, ease: 'power4.out' }, 0)
-      tl.to(group.rotation, { x: 0.04, y: -0.14, z: 0, duration: 1.12, ease: 'power3.out' }, 0.07)
+      // Mobile duration multiplier: 0.5× = ~40 renders instead of ~77
+      const d = mob ? 0.5 : 1
+      tl.to(group.position, { y: 0.4, z: 0, duration: 1.22 * d, ease: 'power4.out' }, 0)
+      tl.to(group.rotation, { x: 0.04, y: -0.14, z: 0, duration: 1.12 * d, ease: 'power3.out' }, 0.07 * d)
       if (mat) {
-        tl.to(mat, { emissiveIntensity: 0.32, duration: 0.09, ease: 'power2.out' }, 0.82)
-        tl.to(mat, { emissiveIntensity: baseEmissive, duration: 0.48, ease: 'power2.out' }, 0.9)
+        tl.to(mat, { emissiveIntensity: 0.32, duration: 0.09, ease: 'power2.out' }, 0.82 * d)
+        tl.to(mat, { emissiveIntensity: baseEmissive, duration: 0.48, ease: 'power2.out' }, 0.9 * d)
       }
       tl.call(() => {
         animDone.current = true
-        // On mobile landscape the gyroscope provides all the motion;
-        // skip the float tween to avoid 60fps demand-renders from GSAP.
-        if (!prefersReducedMotionRef.current && !isMobileLandscape) {
-          floatTweenRef.current = gsap.to(floatOffsetRef.current, {
-            v: 0.025,
-            duration: 2.4,
-            ease: 'sine.inOut',
-            repeat: -1,
-            yoyo: true,
-            onUpdate: () => {
-              groupRef.current.position.y = 0.4 + floatOffsetRef.current.v
+
+        if (!prefersReducedMotionRef.current) {
+          if (mob) {
+            // Mobile float: setInterval at ~15fps instead of GSAP's 60fps onUpdate.
+            // Gives the MacBook life without burning GPU budget between gyro events.
+            const t0 = performance.now()
+            mobileFloatIntervalRef.current = setInterval(() => {
+              if (!groupRef.current) return
+              groupRef.current.position.y = 0.4 + Math.sin((performance.now() - t0) * 0.00045) * 0.018
               invalidate()
-            },
-          })
+            }, 67) // ~15fps
+          } else {
+            floatTweenRef.current = gsap.to(floatOffsetRef.current, {
+              v: 0.025,
+              duration: 2.4,
+              ease: 'sine.inOut',
+              repeat: -1,
+              yoyo: true,
+              onUpdate: () => {
+                groupRef.current.position.y = 0.4 + floatOffsetRef.current.v
+                invalidate()
+              },
+            })
+          }
         }
-      }, [], 1.28)
+      }, [], 1.28 * d)
     }
 
     const smoothstep = (e0: number, e1: number, x: number) => {
@@ -234,6 +253,10 @@ function MacBookModel({ howIBuildStage, isMobileLandscape }: { howIBuildStage: n
       crossfadeST?.kill()
       floatTweenRef.current?.kill()
       floatTweenRef.current = null
+      if (mobileFloatIntervalRef.current !== null) {
+        clearInterval(mobileFloatIntervalRef.current)
+        mobileFloatIntervalRef.current = null
+      }
       // eslint-disable-next-line react-hooks/exhaustive-deps
       floatOffsetRef.current.v = 0
       texture.dispose()

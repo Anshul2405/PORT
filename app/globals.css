@@ -1032,7 +1032,8 @@ body {
 /* Shrink the MacBook overlay canvas so it doesn't swallow the hero text */
 @media (orientation: landscape) and (max-width: 1179px) {
   #shared-macbook-container {
-    width: clamp(260px, 52vw, 580px) !important;
+    /* Card is now ~36vw; give MacBook the remaining ~58vw for an immersive view */
+    width: clamp(280px, 58vw, 640px) !important;
     min-width: unset !important;
   }
 
@@ -1055,42 +1056,47 @@ body {
   }
 
   .hero-section .hero-left {
-    /* Use relative so it's a flex item — hero section align-items:center takes care of vertical centering */
+    /* Relative → participates in flex; hero section align-items:center centers it */
     position: relative !important;
     left: auto !important;
     top: auto !important;
     transform: none !important;
-    margin-left: clamp(0.75rem, 2.5vw, 1.5rem) !important;
-    width: clamp(190px, 44vw, 380px) !important;
-    max-width: clamp(190px, 44vw, 380px) !important;
+    margin-left: clamp(0.6rem, 2vw, 1.2rem) !important;
+    /* Narrower card = more room for MacBook */
+    width: clamp(155px, 36vw, 270px) !important;
+    max-width: clamp(155px, 36vw, 270px) !important;
     text-align: left !important;
     align-items: flex-start !important;
-    padding: clamp(10px, 2vw, 16px) clamp(10px, 2vw, 16px) !important;
+    padding: 10px 12px !important;
     background: rgba(8, 8, 8, 0.84) !important;
-    border-radius: 14px !important;
+    border-radius: 12px !important;
     border: 1px solid rgba(201, 168, 76, 0.14) !important;
-    box-shadow: 0 2px 24px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(201,168,76,0.08) !important;
-    /* Sits above the MacBook canvas (z-index: 10) */
+    box-shadow: 0 2px 20px rgba(0,0,0,0.5) !important;
     z-index: 20 !important;
+    /* Compact vertical rhythm */
+    gap: 6px !important;
+  }
+
+  .hero-section .hero-name-block {
+    margin: 0 0 2px !important;
   }
 
   .hero-section .hero-name-block div {
-    font-size: clamp(1.4rem, 3.8vw, 2.5rem) !important;
+    font-size: clamp(1rem, 2.8vw, 1.55rem) !important;
     word-break: break-word;
+    line-height: 1.15 !important;
   }
 
   .hero-section .hero-badge {
     align-self: flex-start !important;
-    margin-bottom: 0.5rem !important;
+    margin-bottom: 4px !important;
+    /* Shrink badge text */
+    font-size: 8px !important;
+    padding: 3px 8px !important;
   }
 
-  .hero-section .hero-subtitle {
-    justify-content: flex-start !important;
-    flex-wrap: wrap;
-    margin-bottom: 0.5rem !important;
-  }
-
-  /* Bio is too tall for landscape viewport — hide it */
+  /* Subtitle and bio: hidden in landscape — not enough vertical space */
+  .hero-section .hero-subtitle,
   .hero-section .hero-bio {
     display: none !important;
   }
@@ -1098,19 +1104,23 @@ body {
   .hero-section .hero-buttons {
     justify-content: flex-start !important;
     flex-wrap: nowrap !important;
-    gap: 8px !important;
-    margin-bottom: 0.5rem !important;
+    gap: 6px !important;
+    margin-bottom: 4px !important;
   }
 
+  /* Compact buttons */
   .hero-section .hero-buttons > * {
     min-width: unset !important;
+    padding: 8px 12px !important;
+    font-size: 9px !important;
   }
 
   .hero-section .hero-social {
     justify-content: flex-start !important;
+    gap: 10px !important;
   }
 
-  /* Scroll indicator doesn't make sense in landscape hero */
+  /* Scroll indicator hidden in landscape */
   .hero-scroll-indicator {
     display: none !important;
   }
