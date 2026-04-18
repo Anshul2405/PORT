@@ -18,7 +18,7 @@ import {
 } from '@/lib/macbook-display-fit'
 import { assignMacbookScreenMaterial, findMacbookScreenMesh } from '@/lib/macbook-screen-mesh'
 
-function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
+function MacBookModel({ howIBuildStage, isMobileLandscape }: { howIBuildStage: number; isMobileLandscape: boolean }) {
   const { scene } = useGLTF(MACBOOK_GLTF_URL)
   const { invalidate } = useThree()
   const groupRef = useRef<THREE.Group>(null!)
@@ -41,6 +41,16 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
   const prefersReducedMotionRef = useRef(false)
   const floatOffsetRef = useRef({ v: 0 })
   const floatTweenRef = useRef<gsap.core.Tween | null>(null)
+
+  // Gyroscope lerp targets — updated by orientation events, consumed in useFrame
+  const gyroTargetRef = useRef({ x: 0.04, y: -0.14 })
+  const gyroLerpingRef = useRef(false)
+
+  // Stable ref so ScrollTrigger callbacks can read the prop without re-creating closures
+  const isMobileLandscapeRef = useRef(isMobileLandscape)
+  useEffect(() => { isMobileLandscapeRef.current = isMobileLandscape }, [isMobileLandscape])
+  // Scroll render throttle: on mobile we cap scroll-driven renders at ~20fps
+  const lastScrollRenderRef = useRef(0)
 
   useEffect(() => {
     const group = groupRef.current
@@ -156,7 +166,9 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
       }
       tl.call(() => {
         animDone.current = true
-        if (!prefersReducedMotionRef.current) {
+        // On mobile landscape the gyroscope provides all the motion;
+        // skip the float tween to avoid 60fps demand-renders from GSAP.
+        if (!prefersReducedMotionRef.current && !isMobileLandscape) {
           floatTweenRef.current = gsap.to(floatOffsetRef.current, {
             v: 0.025,
             duration: 2.4,
@@ -187,7 +199,7 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
           onUpdate: (self) => {
             const p = reduce ? 0 : self.progress
 
-            // crossfade hero → stage
+            // crossfade hero → stage (always update the value)
             let t = 0
             if (p > 0.28 && p < 0.94) {
               const u = (p - 0.28) / (0.94 - 0.28)
@@ -195,13 +207,20 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
             } else if (p >= 0.94) t = 1
             crossfadeRef.current = t
 
-            // z-parallax only — y is owned by the float tween
-            if (!reduce && animDone.current) {
+            // z-parallax: desktop only — skip on mobile to save render budget
+            if (!reduce && animDone.current && !isMobileLandscapeRef.current) {
               const smoothP = p * p * (3 - 2 * p)
               const zP = 0.14 * smoothstep(0, 0.5, smoothP) + 0.05 * smoothstep(0.68, 1, p)
               group.position.z = zP
             }
 
+            // On mobile, cap scroll-triggered renders at ~20fps so the GPU
+            // isn't overwhelmed during fast scrolling (saves ~40 renders/sec)
+            if (isMobileLandscapeRef.current) {
+              const now = performance.now()
+              if (now - lastScrollRenderRef.current < 48) return
+              lastScrollRenderRef.current = now
+            }
             invalidate()
           },
         })
@@ -224,6 +243,8 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
       img.onload = null
       img.onerror = null
     }
+  // isMobileLandscape is stable per mount (component remounts on orientation change)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene, invalidate])
 
   useEffect(() => {
@@ -267,21 +288,23 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
     return () => clearTimeout(id)
   }, [howIBuildStage, invalidate])
 
-  // Gyroscope tilt — rotates the MacBook in response to physical phone tilt
+  // Gyroscope tilt — only on mobile landscape; throttled to ~30fps; smooth lerp in useFrame
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (!window.matchMedia('(pointer: coarse)').matches) return
+    if (!isMobileLandscape) return
 
     const clampN = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+    let lastT = 0
 
     const onOrientation = (e: DeviceOrientationEvent) => {
       if (!animDone.current || e.beta === null || e.gamma === null) return
-      // beta 90° = phone upright; gamma 0° = no left/right tilt
-      const tiltX = clampN((e.beta - 90) * 0.004, -0.22, 0.22)
-      const tiltY = clampN(e.gamma * 0.007, -0.32, 0.32)
-      groupRef.current.rotation.x = 0.04 + tiltX
-      groupRef.current.rotation.y = -0.14 + tiltY
-      invalidate()
+      const now = performance.now()
+      if (now - lastT < 32) return // hard cap at ~30fps
+      lastT = now
+      // beta 90° = phone held upright; gamma 0° = no left/right tilt
+      gyroTargetRef.current.x = 0.04 + clampN((e.beta - 90) * 0.004, -0.22, 0.22)
+      gyroTargetRef.current.y = -0.14 + clampN(e.gamma * 0.007, -0.32, 0.32)
+      gyroLerpingRef.current = true
+      invalidate() // wake the demand frameloop for one lerp step
     }
 
     let listening = false
@@ -292,7 +315,6 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
       }
       const DOE = DeviceOrientationEvent as DOEWithPermission
       if (typeof DOE.requestPermission === 'function') {
-        // iOS 13+ requires explicit permission from a user gesture
         void DOE.requestPermission().then((p) => {
           if (p === 'granted') {
             window.addEventListener('deviceorientation', onOrientation)
@@ -312,9 +334,9 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
       window.removeEventListener('deviceorientation', onOrientation)
       container?.removeEventListener('touchstart', startListening)
     }
-  }, [invalidate])
+  }, [invalidate, isMobileLandscape])
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     const display = displayCanvasRef.current
     const dCtx = displayCtxRef.current
     const hero = heroCanvasRef.current
@@ -356,6 +378,20 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
     }
 
     texture.needsUpdate = true
+
+    // Smooth gyroscope lerp — re-invalidates until rotation converges
+    if (gyroLerpingRef.current) {
+      const group = groupRef.current
+      const t = gyroTargetRef.current
+      const a = Math.min(1, delta * 9) // exponential approach, ~9 rad/s
+      group.rotation.x += (t.x - group.rotation.x) * a
+      group.rotation.y += (t.y - group.rotation.y) * a
+      if (Math.abs(t.x - group.rotation.x) > 0.0004 || Math.abs(t.y - group.rotation.y) > 0.0004) {
+        invalidate() // keep ticking until settled
+      } else {
+        gyroLerpingRef.current = false
+      }
+    }
   })
 
   return (
@@ -365,7 +401,7 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
   )
 }
 
-function MacBookOverlay({ howIBuildStage }: { howIBuildStage: number }) {
+function MacBookOverlay({ howIBuildStage, isMobileLandscape }: { howIBuildStage: number; isMobileLandscape: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [orbitHintVisible, setOrbitHintVisible] = useState(true)
 
@@ -416,11 +452,16 @@ function MacBookOverlay({ howIBuildStage }: { howIBuildStage: number }) {
         height: '100dvh',
         zIndex: 10,
         overflow: 'visible',
-        cursor: 'grab',
+        cursor: isMobileLandscape ? 'default' : 'grab',
         opacity: 1,
+        // Gold ambient glow shows through the transparent WebGL canvas
+        background: isMobileLandscape
+          ? 'radial-gradient(ellipse 85% 65% at 48% 50%, rgba(201,168,76,0.06) 0%, transparent 68%)'
+          : 'transparent',
       }}
     >
-      {orbitHintVisible && (
+      {/* Desktop: drag-to-orbit hint */}
+      {orbitHintVisible && !isMobileLandscape && (
         <div
           className="macbook-orbit-hint pointer-events-none absolute bottom-[14%] left-[8%] z-20 max-w-[200px] text-left max-md:hidden"
           aria-hidden
@@ -451,11 +492,35 @@ function MacBookOverlay({ howIBuildStage }: { howIBuildStage: number }) {
           </p>
         </div>
       )}
+      {/* Mobile landscape: tilt hint */}
+      {isMobileLandscape && (
+        <div
+          className="pointer-events-none absolute z-20 flex items-center gap-[7px]"
+          aria-hidden
+          style={{
+            bottom: 'max(14px, env(safe-area-inset-bottom, 0px) + 10px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '9px',
+            letterSpacing: '0.35em',
+            color: 'rgba(201, 168, 76, 0.65)',
+            whiteSpace: 'nowrap',
+            animation: 'rotate-hint-pulse 3s ease-in-out 4',
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a10 10 0 0 0-10 10" /><path d="M12 2l-3 3 3 3" />
+            <path d="M12 22a10 10 0 0 0 10-10" /><path d="M12 22l3-3-3-3" />
+          </svg>
+          TILT TO EXPLORE
+        </div>
+      )}
       <Canvas
         camera={{ position: [0, 0.36, 6.2], fov: 31 }}
         gl={{ antialias: false, alpha: true, powerPreference: 'low-power' }}
         frameloop="demand"
-        dpr={[1, 1.5]}
+        dpr={isMobileLandscape ? 1 : [1, 1.5]}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ReinhardToneMapping
           gl.toneMappingExposure = 0.9
@@ -467,20 +532,24 @@ function MacBookOverlay({ howIBuildStage }: { howIBuildStage: number }) {
           inset: 0,
         }}
       >
-        <ambientLight intensity={0.35} />
+        <ambientLight intensity={0.38} />
         <directionalLight position={[3, 5, 4]} intensity={1.4} color="#ffffff" />
         <directionalLight position={[-3, 1, -3]} intensity={0.55} color="#c8a96e" />
-        <directionalLight position={[0, -2, 3]} intensity={0.18} color="#ffffff" />
+        {/* 3rd fill light skipped on mobile to reduce draw calls */}
+        {!isMobileLandscape && <directionalLight position={[0, -2, 3]} intensity={0.18} color="#ffffff" />}
         <Suspense fallback={null}>
-          <MacBookModel howIBuildStage={howIBuildStage} />
+          <MacBookModel howIBuildStage={howIBuildStage} isMobileLandscape={isMobileLandscape} />
         </Suspense>
-        <OrbitControls
-          target={[0, 0.3, 0]}
-          enablePan={false}
-          enableZoom={false}
-          rotateSpeed={0.5}
-          onStart={() => setOrbitHintVisible(false)}
-        />
+        {/* OrbitControls only on desktop — mobile uses gyroscope */}
+        {!isMobileLandscape && (
+          <OrbitControls
+            target={[0, 0.3, 0]}
+            enablePan={false}
+            enableZoom={false}
+            rotateSpeed={0.5}
+            onStart={() => setOrbitHintVisible(false)}
+          />
+        )}
       </Canvas>
     </div>
   )
@@ -488,8 +557,9 @@ function MacBookOverlay({ howIBuildStage }: { howIBuildStage: number }) {
 
 /** Floating MacBook — wide desktop OR landscape mobile (≥680 px wide). */
 const MACBOOK_MIN_WIDTH = 1180
-// Landscape phones/tablets: show the full 3D experience when rotated
 const MACBOOK_LANDSCAPE_MQ = '(orientation: landscape) and (min-width: 680px)'
+// Touch device in landscape = mobile landscape experience
+const MOBILE_LANDSCAPE_MQ = '(pointer: coarse) and (orientation: landscape) and (min-width: 680px)'
 
 function subscribeMacbookViewport(cb: () => void) {
   const mqW = window.matchMedia(`(min-width: ${MACBOOK_MIN_WIDTH}px)`)
@@ -509,16 +579,31 @@ function getMacbookViewportWideEnough() {
   )
 }
 
+function subscribeMobileLandscape(cb: () => void) {
+  const mq = window.matchMedia(MOBILE_LANDSCAPE_MQ)
+  mq.addEventListener('change', cb)
+  return () => mq.removeEventListener('change', cb)
+}
+
+function getIsMobileLandscape() {
+  return window.matchMedia(MOBILE_LANDSCAPE_MQ).matches
+}
+
 export default function SharedMacBook({ howIBuildStage }: { howIBuildStage: number }) {
   const wideEnough = useSyncExternalStore(
     subscribeMacbookViewport,
     getMacbookViewportWideEnough,
     () => false,
   )
+  const isMobileLandscape = useSyncExternalStore(
+    subscribeMobileLandscape,
+    getIsMobileLandscape,
+    () => false,
+  )
 
   if (!wideEnough) return null
   return createPortal(
-    <MacBookOverlay howIBuildStage={howIBuildStage} />,
+    <MacBookOverlay howIBuildStage={howIBuildStage} isMobileLandscape={isMobileLandscape} />,
     document.body,
   )
 }
