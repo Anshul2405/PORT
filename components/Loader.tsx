@@ -3,6 +3,8 @@
 import dynamic from 'next/dynamic'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
+import { ArMonogram } from '@/components/brand/ArMonogram'
+import { usePerformanceLiteMode } from '@/lib/use-performance-mode'
 
 const LoaderSculpture = dynamic(() => import('@/components/LoaderSculpture'), {
   ssr: false,
@@ -14,14 +16,15 @@ type LoaderProps = {
 
 export default function Loader({ onComplete }: LoaderProps) {
   const reduceMotion = useReducedMotion() === true
+  const performanceLite = usePerformanceLiteMode()
   const [hidden, setHidden] = useState(false)
   const [gone, setGone] = useState(false)
   const [progress, setProgress] = useState(0)
   const calledRef = useRef(false)
   const startRef = useRef<number | null>(null)
 
-  const fadeOutMs = reduceMotion ? 320 : 1300
-  const fadeMs = reduceMotion ? 520 : 6800
+  const fadeOutMs = reduceMotion ? 200 : 500
+  const fadeMs = reduceMotion ? 400 : 900
   const exitMs = reduceMotion ? 720 : fadeMs + fadeOutMs + 200
   const exitAnimMs = 600
   const progressEndMs = Math.max(1, exitMs - exitAnimMs)
@@ -104,9 +107,13 @@ export default function Loader({ onComplete }: LoaderProps) {
           filter: 'drop-shadow(0 18px 42px rgba(0,0,0,0.65)) drop-shadow(0 0 20px rgba(201,168,76,0.12))',
         }}
       >
-        <Suspense fallback={<div style={{ height: 300, width: 360 }} />}>
-          <LoaderSculpture spinning={!reduceMotion} />
-        </Suspense>
+        {performanceLite ? (
+          <ArMonogram tone="light" size={260} imgSizes="(max-width: 768px) 240px, 260px" />
+        ) : (
+          <Suspense fallback={<div style={{ height: 300, width: 360 }} />}>
+            <LoaderSculpture spinning={!reduceMotion} />
+          </Suspense>
+        )}
       </motion.div>
 
       <motion.div

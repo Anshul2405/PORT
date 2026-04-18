@@ -6,6 +6,7 @@ import { useTextScramble } from '@/lib/use-text-scramble'
 import dynamic from 'next/dynamic'
 import { gsap } from '@/lib/gsap'
 import { simulatePortfolioKeyPress } from '@/lib/keyboard-sim-bridge'
+import { usePerformanceLiteMode } from '@/lib/use-performance-mode'
 
 const InteractiveKeyboard = dynamic(() => import('@/components/InteractiveKeyboard'), {
   ssr: false,
@@ -64,6 +65,7 @@ const SKILL_AFTER_TYPE_MS = 420
 const SKILL_AFTER_LAND_MS = 200
 
 export default function Skills() {
+  const performanceLite = usePerformanceLiteMode()
   const sectionRef = useRef<HTMLElement>(null)
   const labelRef = useRef<HTMLParagraphElement>(null)
   const theatreRef = useRef<HTMLDivElement>(null)
@@ -279,7 +281,7 @@ export default function Skills() {
   }, [])
 
   useEffect(() => {
-    if (!mounted) return
+    if (!mounted || performanceLite) return
     const updateRect = () => {
       const el = keyboardMountRef.current
       if (!el) return
@@ -302,7 +304,7 @@ export default function Skills() {
       window.removeEventListener('scroll', updateRect)
       window.clearInterval(interval)
     }
-  }, [mounted])
+  }, [mounted, performanceLite])
 
   useEffect(() => {
     return () => {
@@ -332,7 +334,7 @@ export default function Skills() {
   }, [landedSkills])
 
   const keyboardPortalStyle: React.CSSProperties | null =
-    mounted && keyboardRect
+    !performanceLite && mounted && keyboardRect
       ? (() => {
           const scaleW = 1.68
           const scaleH = 1.5

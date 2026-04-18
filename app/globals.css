@@ -46,15 +46,53 @@ body {
     linear-gradient(180deg, #000000 0%, #030303 100%);
 }
 
-.touch-device body {
-  cursor: auto;
+/* Fine-pointer (mouse) devices: hide native cursor for custom cursor */
+@media (pointer: fine) {
+  a,
+  button,
+  [role='button'],
+  [data-cursor] {
+    cursor: none;
+  }
 }
 
-a,
-button,
-[role='button'],
-[data-cursor] {
-  cursor: none;
+/* Coarse-pointer (touch) devices: restore all cursors, remove custom cursor side-effects */
+@media (pointer: coarse) {
+  body,
+  a,
+  button,
+  [role='button'],
+  input,
+  textarea,
+  select,
+  [data-cursor],
+  [data-cursor-orbit] {
+    cursor: auto !important;
+  }
+
+  /* Prevent 300ms tap delay on iOS / Android */
+  button,
+  a,
+  [role='button'],
+  label,
+  summary {
+    touch-action: manipulation;
+  }
+
+  /* Minimum 44 × 44 px tap targets (Apple & WCAG 2.5.5) */
+  button,
+  [role='button'],
+  .nav-dot {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent iOS Safari auto-zoom on input focus (requires font-size ≥ 16 px) */
+  input,
+  textarea,
+  select {
+    font-size: max(16px, 1em) !important;
+  }
 }
 
 ::selection {
@@ -317,48 +355,62 @@ button,
 
 @media (max-width: 900px) {
   .hero-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding-top: max(5rem, env(safe-area-inset-top, 0px) + 3.5rem);
     padding-bottom: max(2rem, env(safe-area-inset-bottom, 0px) + 1rem);
   }
 
   .hero-section .hero-left {
-    left: 50% !important;
-    width: min(
-      480px,
-      calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 32px)
-    );
-    max-width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 32px);
-    transform: translate(-50%, -50%) !important;
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    width: min(480px, calc(100vw - 40px)) !important;
+    max-width: calc(100vw - 40px) !important;
     text-align: center;
     align-items: center;
+    padding: 0 4px;
   }
 
   .hero-section .hero-badge {
     align-self: center !important;
+    margin-bottom: 1.25rem !important;
+  }
+
+  .hero-section .hero-name-block {
+    margin: 0 0 0.5rem !important;
   }
 
   .hero-section .hero-name-block div {
-    font-size: clamp(2.5rem, 11vw, 4rem) !important;
+    font-size: clamp(2.6rem, 13vw, 4.2rem) !important;
+    word-break: break-word;
   }
 
   .hero-section .hero-subtitle {
     justify-content: center;
     flex-wrap: wrap;
+    margin-bottom: 1rem !important;
   }
 
   .hero-section .hero-bio {
     max-width: 100% !important;
+    margin-bottom: 1.25rem !important;
+    font-size: 0.85rem !important;
   }
 
   .hero-section .hero-buttons {
     flex-wrap: wrap;
     justify-content: center;
     width: 100%;
+    gap: 12px !important;
+    margin-bottom: 1.25rem !important;
   }
 
   .hero-section .hero-buttons > * {
     flex: 0 1 auto;
-    min-width: min(100%, 200px);
+    min-width: min(100%, 180px);
   }
 
   .hero-section .hero-social {
@@ -368,46 +420,25 @@ button,
   }
 }
 
+/* Extra-small phones: tighter still */
+@media (max-width: 390px) {
+  .hero-section .hero-name-block div {
+    font-size: clamp(2.2rem, 14vw, 3rem) !important;
+  }
+
+  .hero-section .hero-badge {
+    margin-bottom: 1rem !important;
+  }
+}
+
 @media (min-width: 901px) and (max-width: 1200px) {
   .hero-section .hero-name-block div {
     font-size: clamp(3rem, 6vw, 5.5rem) !important;
   }
 }
 
-.noise::after {
-  content: '';
-  position: fixed;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
-  opacity: 0.035;
-  pointer-events: none;
-  z-index: 9999;
-  animation: grain 0.5s steps(1) infinite;
-}
-
-.perf-lite .noise::after {
-  animation: none;
-  opacity: 0.015;
-}
-
 .perf-lite .nav-logo-revolve {
   animation-duration: 14s;
-}
-
-@keyframes grain {
-  0%, 100% { transform: translate(0, 0); }
-  10% { transform: translate(-2%, -3%); }
-  20% { transform: translate(3%, 2%); }
-  30% { transform: translate(-1%, 4%); }
-  40% { transform: translate(4%, -1%); }
-  50% { transform: translate(-3%, 3%); }
-  60% { transform: translate(2%, -4%); }
-  70% { transform: translate(-4%, 2%); }
-  80% { transform: translate(3%, -2%); }
-  90% { transform: translate(-2%, 4%); }
 }
 
 @keyframes fadeUp {
@@ -510,11 +541,6 @@ button,
 .contact-slide-right.visible {
   opacity: 1;
   transform: translateX(0);
-}
-
-@keyframes grid-drift {
-  0% { transform: perspective(600px) rotateX(25deg) translateY(0); }
-  100% { transform: perspective(600px) rotateX(25deg) translateY(60px); }
 }
 
 @keyframes live-blink {
@@ -837,8 +863,8 @@ button,
 
 @media (max-width: 640px) {
   main > section {
-    padding-top: clamp(72px, 13vw, 96px) !important;
-    padding-bottom: clamp(72px, 13vw, 96px) !important;
+    padding-top: clamp(64px, 13vw, 96px) !important;
+    padding-bottom: clamp(64px, 13vw, 96px) !important;
   }
 
   main > section#hero {
@@ -999,4 +1025,112 @@ button,
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ─── Landscape mobile: full 3D hero experience ─────────────────────────── */
+
+/* Shrink the MacBook overlay canvas so it doesn't swallow the hero text */
+@media (orientation: landscape) and (max-width: 1179px) {
+  #shared-macbook-container {
+    width: clamp(260px, 52vw, 580px) !important;
+    min-width: unset !important;
+  }
+}
+
+/* Re-enable desktop side-by-side layout: text left, MacBook right */
+@media (orientation: landscape) and (max-width: 1179px) and (pointer: coarse) {
+  .hero-section {
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding-top: max(3rem, env(safe-area-inset-top, 0px) + 2rem) !important;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .hero-section .hero-left {
+    position: absolute !important;
+    left: clamp(1rem, 3vw, 2rem) !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: clamp(190px, 44vw, 380px) !important;
+    max-width: clamp(190px, 44vw, 380px) !important;
+    text-align: left !important;
+    align-items: flex-start !important;
+    padding: 0 !important;
+  }
+
+  .hero-section .hero-name-block div {
+    font-size: clamp(1.5rem, 4vw, 2.6rem) !important;
+    word-break: break-word;
+  }
+
+  .hero-section .hero-badge {
+    align-self: flex-start !important;
+    margin-bottom: 0.55rem !important;
+  }
+
+  .hero-section .hero-subtitle {
+    justify-content: flex-start !important;
+    flex-wrap: wrap;
+    margin-bottom: 0.55rem !important;
+  }
+
+  /* Bio is too tall for landscape viewport — hide it */
+  .hero-section .hero-bio {
+    display: none !important;
+  }
+
+  .hero-section .hero-buttons {
+    justify-content: flex-start !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    margin-bottom: 0.55rem !important;
+  }
+
+  .hero-section .hero-buttons > * {
+    min-width: unset !important;
+  }
+
+  .hero-section .hero-social {
+    justify-content: flex-start !important;
+  }
+
+  /* Scroll indicator doesn't make sense in landscape hero */
+  .hero-scroll-indicator {
+    display: none !important;
+  }
+}
+
+/* ─── Portrait-mobile hint: rotate for 3D ──────────────────────────────── */
+
+.mobile-rotate-hint {
+  display: none;
+}
+
+@keyframes rotate-hint-pulse {
+  0%, 100% { opacity: 0.45; transform: translateX(-50%) scale(1); }
+  50%       { opacity: 0.75; transform: translateX(-50%) scale(1.04); }
+}
+
+@media (orientation: portrait) and (max-width: 1179px) and (pointer: coarse) {
+  .mobile-rotate-hint {
+    display: flex;
+    position: fixed;
+    bottom: max(24px, env(safe-area-inset-bottom, 0px) + 14px);
+    left: 50%;
+    transform: translateX(-50%);
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.35em;
+    color: rgba(201, 168, 76, 0.6);
+    z-index: 30;
+    pointer-events: none;
+    white-space: nowrap;
+    animation: rotate-hint-pulse 3s ease-in-out infinite;
+  }
+}
+
+@media (orientation: landscape) {
+  .mobile-rotate-hint { display: none !important; }
 }

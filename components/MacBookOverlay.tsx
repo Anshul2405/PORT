@@ -7,6 +7,9 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import { gsap, ScrollTrigger } from '@/lib/gsap'
 import MacOSDesktop from './how-i-build/MacOSDesktop'
+import { MACBOOK_GLTF_URL } from '@/lib/macbook-model-url'
+import { applyMacbookScreenTextureParams } from '@/lib/macbook-canvas-texture'
+import { assignMacbookScreenMaterial, findMacbookScreenMesh } from '@/lib/macbook-screen-mesh'
 
 /* ─── Shared mutable state (R3F ↔ DOM, no React re-renders) ─── */
 const _s = {
@@ -75,7 +78,7 @@ function drawRightPanel(ctx: CanvasRenderingContext2D) {
 
 /* ─── 3D MacBook Model ─── */
 function MacBookModel() {
-  const { scene } = useGLTF('/models/macbook_opt.glb')
+  const { scene } = useGLTF(MACBOOK_GLTF_URL)
   const groupRef = useRef<THREE.Group>(null!)
   const matRef = useRef<THREE.MeshStandardMaterial | null>(null)
   const mouse = useRef({ x: 0, y: 0 })
@@ -111,21 +114,21 @@ function MacBookModel() {
     const ctx = cvs.getContext('2d')!
     const tex = new THREE.CanvasTexture(cvs)
     tex.colorSpace = THREE.SRGBColorSpace
+    applyMacbookScreenTextureParams(tex)
 
-    scene.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh && child.name === 'Object_123') {
-        const mat = new THREE.MeshStandardMaterial({
-          map: tex, emissiveMap: tex,
-          emissive: new THREE.Color('#ffffff'),
-          emissiveIntensity: 0.45,
-          roughness: 0.15, metalness: 0,
-          color: new THREE.Color('#ffffff'),
-          transparent: true,
-        })
-        ;(child as THREE.Mesh).material = mat
-        matRef.current = mat
-      }
-    })
+    const screenMesh = findMacbookScreenMesh(scene)
+    if (screenMesh) {
+      const mat = new THREE.MeshStandardMaterial({
+        map: tex, emissiveMap: tex,
+        emissive: new THREE.Color('#ffffff'),
+        emissiveIntensity: 0.45,
+        roughness: 0.15, metalness: 0,
+        color: new THREE.Color('#ffffff'),
+        transparent: true,
+      })
+      assignMacbookScreenMaterial(screenMesh, mat)
+      matRef.current = mat
+    }
 
     const img = new window.Image()
     img.crossOrigin = 'anonymous'
@@ -143,7 +146,10 @@ function MacBookModel() {
       drawRightPanel(ctx)
       tex.needsUpdate = true
     }
-    img.onerror = () => { drawRightPanel(ctx); tex.needsUpdate = true }
+    img.onerror = () => {
+      drawRightPanel(ctx)
+      tex.needsUpdate = true
+    }
     img.src = '/images/anshul.png'
 
     group.position.set(0, -0.3, 0)
@@ -351,4 +357,4 @@ export default function MacBookOverlay({ activeStage, visible = true }: MacBookO
   )
 }
 
-useGLTF.preload('/models/macbook_opt.glb')
+useGLTF.preload(MACBOOK_GLTF_URL)

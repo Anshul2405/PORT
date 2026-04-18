@@ -2,23 +2,31 @@
 
 import { Suspense, useRef, useEffect, useSyncExternalStore, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useGLTF, OrbitControls } from '@react-three/drei'
-import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import { gsap, ScrollTrigger } from '@/lib/gsap'
 import {
-  SCREEN_W, SCREEN_H, TEX_SCALE,
   buildHeroScreenCanvas, drawHeroPhoto, buildStageCanvas,
 } from '@/lib/macbook-screens'
+import { MACBOOK_GLTF_URL } from '@/lib/macbook-model-url'
+import { applyMacbookScreenTextureParams } from '@/lib/macbook-canvas-texture'
+import {
+  drawMacbookCrossfadeContain,
+  drawMacbookScreenContain,
+  getMacbookDisplayCanvasSize,
+} from '@/lib/macbook-display-fit'
+import { assignMacbookScreenMaterial, findMacbookScreenMesh } from '@/lib/macbook-screen-mesh'
 
 function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
-  const { scene } = useGLTF('/models/macbook_opt.glb')
+  const { scene } = useGLTF(MACBOOK_GLTF_URL)
+  const { invalidate } = useThree()
   const groupRef = useRef<THREE.Group>(null!)
   const textureRef = useRef<THREE.CanvasTexture | null>(null)
   const heroCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const stageCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const displayCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const displayCtxRef = useRef<CanvasRenderingContext2D | null>(null)
   const animDone = useRef(false)
   const tlRef = useRef<gsap.core.Timeline | null>(null)
   const crossfadeRef = useRef(0)
@@ -29,9 +37,10 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
   const stageTransRef = useRef({ progress: 1 })
   const stageTlRef = useRef<gsap.core.Timeline | null>(null)
   const screenMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null)
-  const baseEmissive = 0.45
-  const heroScrollProgressRef = useRef(0)
+  const baseEmissive = 0.22
   const prefersReducedMotionRef = useRef(false)
+  const floatOffsetRef = useRef({ v: 0 })
+  const floatTweenRef = useRef<gsap.core.Tween | null>(null)
 
   useEffect(() => {
     const group = groupRef.current
@@ -54,42 +63,61 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
     const center = new THREE.Box3().setFromObject(scene).getCenter(new THREE.Vector3())
     scene.position.set(-center.x, -center.y, -center.z)
 
+    // Shift aluminium body from silver → Space Black.
+    // Only the albedo (color) is touched; normal/roughness/metalness maps are preserved.
+    scene.traverse((child) => {
+      const mesh = child as THREE.Mesh
+      if (!mesh.isMesh) return
+      const mats = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]) as THREE.Material[]
+      mats.forEach((mat) => {
+        if (!(mat instanceof THREE.MeshStandardMaterial)) return
+        const n = mat.name.toLowerCase()
+        if (n.includes('glass') || n.includes('screen') || n.includes('display')) return
+        mat.color.multiplyScalar(0.2)          // ~80 % darker → near-black
+        mat.color.r = Math.min(1, mat.color.r + 0.018) // subtle warm undertone
+        mat.color.g = Math.min(1, mat.color.g + 0.010) // matches gold theme
+      })
+    })
+
+    const screenMesh = findMacbookScreenMesh(scene)
+    const px = getMacbookDisplayCanvasSize(screenMesh)
+
     const displayCanvas = document.createElement('canvas')
-    displayCanvas.width = SCREEN_W * TEX_SCALE
-    displayCanvas.height = SCREEN_H * TEX_SCALE
+    displayCanvas.width = px.width
+    displayCanvas.height = px.height
     displayCanvasRef.current = displayCanvas
+    const dCtx = displayCanvas.getContext('2d')!
+    displayCtxRef.current = dCtx
 
     const heroCanvas = buildHeroScreenCanvas()
     heroCanvasRef.current = heroCanvas
 
     stageCanvasRef.current = buildStageCanvas(0)
 
-    const dCtx = displayCanvas.getContext('2d')!
-    dCtx.drawImage(heroCanvas, 0, 0)
+    drawMacbookScreenContain(dCtx, heroCanvas, displayCanvas.width, displayCanvas.height)
 
     const texture = new THREE.CanvasTexture(displayCanvas)
     texture.colorSpace = THREE.SRGBColorSpace
+    texture.generateMipmaps = false
     texture.minFilter = THREE.LinearFilter
     texture.magFilter = THREE.LinearFilter
     texture.anisotropy = 16
+    applyMacbookScreenTextureParams(texture)
     textureRef.current = texture
 
-    scene.traverse((child: THREE.Object3D) => {
-      const mesh = child as THREE.Mesh
-      if (mesh.isMesh && mesh.name === 'Object_123') {
-        const mat = new THREE.MeshStandardMaterial({
-          map: texture,
-          emissiveMap: texture,
-          emissive: new THREE.Color('#ffffff'),
-          emissiveIntensity: baseEmissive,
-          roughness: 0.15,
-          metalness: 0.0,
-          color: new THREE.Color('#ffffff'),
-        })
-        mesh.material = mat
-        screenMaterialRef.current = mat
-      }
-    })
+    if (screenMesh) {
+      const mat = new THREE.MeshStandardMaterial({
+        map: texture,
+        emissiveMap: texture,
+        emissive: new THREE.Color('#ffffff'),
+        emissiveIntensity: baseEmissive,
+        roughness: 0.15,
+        metalness: 0.0,
+        color: new THREE.Color('#ffffff'),
+      })
+      assignMacbookScreenMaterial(screenMesh, mat)
+      screenMaterialRef.current = mat
+    }
 
     const img = new window.Image()
     img.crossOrigin = 'anonymous'
@@ -97,9 +125,9 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
       drawHeroPhoto(heroCanvas, img)
       if (crossfadeRef.current < 1) {
         dCtx.setTransform(1, 0, 0, 1, 0, 0)
-        dCtx.clearRect(0, 0, displayCanvas.width, displayCanvas.height)
-        dCtx.drawImage(heroCanvas, 0, 0)
+        drawMacbookScreenContain(dCtx, heroCanvas, displayCanvas.width, displayCanvas.height)
         texture.needsUpdate = true
+        invalidate()
       }
     }
     img.onerror = () => {}
@@ -109,7 +137,8 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
     group.position.set(0, reduce ? 0.5 : 1.02, reduce ? 0 : 0.07)
     group.rotation.set(reduce ? 0.06 : 0.11, reduce ? -0.2 : -0.3, reduce ? 0 : 0.018)
 
-    const tl = gsap.timeline({ delay: reduce ? 0.12 : 0.42 })
+    // onUpdate: invalidate so demand frameloop renders each tween step
+    const tl = gsap.timeline({ delay: reduce ? 0.12 : 0.42, onUpdate: invalidate })
     tlRef.current = tl
     const mat = screenMaterialRef.current
 
@@ -117,14 +146,35 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
       tl.to(group.position, { y: 0.4, z: 0, duration: 0.42, ease: 'power2.out' }, 0)
       tl.to(group.rotation, { x: 0.04, y: -0.14, z: 0, duration: 0.42, ease: 'power2.out' }, 0)
       tl.call(() => { animDone.current = true }, [], 0.42)
+
     } else {
       tl.to(group.position, { y: 0.4, z: 0, duration: 1.22, ease: 'power4.out' }, 0)
       tl.to(group.rotation, { x: 0.04, y: -0.14, z: 0, duration: 1.12, ease: 'power3.out' }, 0.07)
       if (mat) {
-        tl.to(mat, { emissiveIntensity: 0.56, duration: 0.09, ease: 'power2.out' }, 0.82)
+        tl.to(mat, { emissiveIntensity: 0.32, duration: 0.09, ease: 'power2.out' }, 0.82)
         tl.to(mat, { emissiveIntensity: baseEmissive, duration: 0.48, ease: 'power2.out' }, 0.9)
       }
-      tl.call(() => { animDone.current = true }, [], 1.28)
+      tl.call(() => {
+        animDone.current = true
+        if (!prefersReducedMotionRef.current) {
+          floatTweenRef.current = gsap.to(floatOffsetRef.current, {
+            v: 0.025,
+            duration: 2.4,
+            ease: 'sine.inOut',
+            repeat: -1,
+            yoyo: true,
+            onUpdate: () => {
+              groupRef.current.position.y = 0.4 + floatOffsetRef.current.v
+              invalidate()
+            },
+          })
+        }
+      }, [], 1.28)
+    }
+
+    const smoothstep = (e0: number, e1: number, x: number) => {
+      const tt = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)))
+      return tt * tt * (3 - 2 * tt)
     }
 
     const heroEl = document.querySelector('#hero')
@@ -135,16 +185,24 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
           end: 'bottom top',
           scrub: true,
           onUpdate: (self) => {
-            const p = self.progress
-            heroScrollProgressRef.current = prefersReducedMotionRef.current ? 0 : p
+            const p = reduce ? 0 : self.progress
+
+            // crossfade hero → stage
             let t = 0
-            if (p <= 0.28) t = 0
-            else if (p >= 0.94) t = 1
-            else {
+            if (p > 0.28 && p < 0.94) {
               const u = (p - 0.28) / (0.94 - 0.28)
               t = u * u * (3 - 2 * u)
-            }
+            } else if (p >= 0.94) t = 1
             crossfadeRef.current = t
+
+            // z-parallax only — y is owned by the float tween
+            if (!reduce && animDone.current) {
+              const smoothP = p * p * (3 - 2 * p)
+              const zP = 0.14 * smoothstep(0, 0.5, smoothP) + 0.05 * smoothstep(0.68, 1, p)
+              group.position.z = zP
+            }
+
+            invalidate()
           },
         })
       : null
@@ -155,93 +213,126 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
       stageTlRef.current?.kill()
       stageTlRef.current = null
       crossfadeST?.kill()
+      floatTweenRef.current?.kill()
+      floatTweenRef.current = null
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      floatOffsetRef.current.v = 0
       texture.dispose()
       textureRef.current = null
+      displayCtxRef.current = null
       screenMaterialRef.current = null
       img.onload = null
       img.onerror = null
     }
-  }, [scene])
+  }, [scene, invalidate])
 
   useEffect(() => {
-    const newStage = buildStageCanvas(howIBuildStage)
+    // Build the new stage canvas off the current frame so the render loop
+    // isn't blocked by canvas drawing during a stage switch.
+    const id = setTimeout(() => {
+      const newStage = buildStageCanvas(howIBuildStage)
+      lastRenderedStage.current = howIBuildStage
 
-    if (crossfadeRef.current >= 1 && stageCanvasRef.current && animDone.current) {
-      stageTlRef.current?.kill()
+      if (crossfadeRef.current >= 1 && stageCanvasRef.current && animDone.current) {
+        stageTlRef.current?.kill()
 
-      prevStageCanvasRef.current = stageCanvasRef.current
-      stageCanvasRef.current = newStage
-      stageTransRef.current.progress = 0
+        prevStageCanvasRef.current = stageCanvasRef.current
+        stageCanvasRef.current = newStage
+        stageTransRef.current.progress = 0
 
-      const tl = gsap.timeline()
-      stageTlRef.current = tl
-      const fast = prefersReducedMotionRef.current
-      tl.to(stageTransRef.current, {
-        progress: 1,
-        duration: fast ? 0.12 : 0.38,
-        ease: 'power2.out',
-        onComplete: () => { prevStageCanvasRef.current = null },
-      }, 0)
-    } else {
-      stageCanvasRef.current = newStage
-      stageTransRef.current.progress = 1
+        const tl = gsap.timeline({ onUpdate: invalidate })
+        stageTlRef.current = tl
+        const fast = prefersReducedMotionRef.current
+        tl.to(stageTransRef.current, {
+          progress: 1,
+          duration: fast ? 0.1 : 0.22,
+          ease: 'power2.out',
+          onComplete: () => { prevStageCanvasRef.current = null },
+        }, 0)
+      } else {
+        stageCanvasRef.current = newStage
+        stageTransRef.current.progress = 1
 
-      if (crossfadeRef.current >= 1 && displayCanvasRef.current && textureRef.current) {
-        const dCtx = displayCanvasRef.current.getContext('2d')!
-        dCtx.setTransform(1, 0, 0, 1, 0, 0)
-        dCtx.clearRect(0, 0, displayCanvasRef.current.width, displayCanvasRef.current.height)
-        dCtx.drawImage(newStage, 0, 0)
-        textureRef.current.needsUpdate = true
-      }
-    }
-
-    lastRenderedStage.current = howIBuildStage
-  }, [howIBuildStage])
-
-  useFrame(({ clock }) => {
-    const group = groupRef.current
-    if (!group) return
-
-    if (animDone.current) {
-      const t = clock.elapsedTime
-      let yParallax = 0
-      let zParallax = 0
-      if (!prefersReducedMotionRef.current) {
-        const p = heroScrollProgressRef.current
-        const smoothstep = (edge0: number, edge1: number, x: number) => {
-          const tt = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)))
-          return tt * tt * (3 - 2 * tt)
+        const dCtx = displayCtxRef.current
+        const display = displayCanvasRef.current
+        const texture = textureRef.current
+        if (crossfadeRef.current >= 1 && dCtx && display && texture) {
+          dCtx.setTransform(1, 0, 0, 1, 0, 0)
+          drawMacbookScreenContain(dCtx, newStage, display.width, display.height)
+          texture.needsUpdate = true
+          invalidate()
         }
-        const smoothP = p * p * (3 - 2 * p)
-        yParallax =
-          -0.09 * smoothstep(0, 0.45, smoothP) +
-          0.024 * smoothstep(0.74, 1, p)
-        zParallax =
-          0.14 * smoothstep(0, 0.5, smoothP) +
-          0.05 * smoothstep(0.68, 1, p)
       }
-      const floatY =
-        0.4 + Math.sin(t * 0.5) * 0.03 + yParallax
-      group.position.y += (floatY - group.position.y) * 0.025
-      group.position.z += (zParallax - group.position.z) * 0.055
+    }, 0)
+    return () => clearTimeout(id)
+  }, [howIBuildStage, invalidate])
+
+  // Gyroscope tilt — rotates the MacBook in response to physical phone tilt
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!window.matchMedia('(pointer: coarse)').matches) return
+
+    const clampN = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+
+    const onOrientation = (e: DeviceOrientationEvent) => {
+      if (!animDone.current || e.beta === null || e.gamma === null) return
+      // beta 90° = phone upright; gamma 0° = no left/right tilt
+      const tiltX = clampN((e.beta - 90) * 0.004, -0.22, 0.22)
+      const tiltY = clampN(e.gamma * 0.007, -0.32, 0.32)
+      groupRef.current.rotation.x = 0.04 + tiltX
+      groupRef.current.rotation.y = -0.14 + tiltY
+      invalidate()
     }
 
+    let listening = false
+    const startListening = () => {
+      if (listening) return
+      type DOEWithPermission = typeof DeviceOrientationEvent & {
+        requestPermission?: () => Promise<PermissionState>
+      }
+      const DOE = DeviceOrientationEvent as DOEWithPermission
+      if (typeof DOE.requestPermission === 'function') {
+        // iOS 13+ requires explicit permission from a user gesture
+        void DOE.requestPermission().then((p) => {
+          if (p === 'granted') {
+            window.addEventListener('deviceorientation', onOrientation)
+            listening = true
+          }
+        })
+      } else {
+        window.addEventListener('deviceorientation', onOrientation)
+        listening = true
+      }
+    }
+
+    const container = document.getElementById('shared-macbook-container')
+    container?.addEventListener('touchstart', startListening, { once: true })
+
+    return () => {
+      window.removeEventListener('deviceorientation', onOrientation)
+      container?.removeEventListener('touchstart', startListening)
+    }
+  }, [invalidate])
+
+  useFrame(() => {
     const display = displayCanvasRef.current
+    const dCtx = displayCtxRef.current
     const hero = heroCanvasRef.current
     const stage = stageCanvasRef.current
     const texture = textureRef.current
-    if (!display || !hero || !texture) return
+    if (!display || !dCtx || !hero || !texture) return
 
     const trans = stageTransRef.current.progress
     if (trans < 1 && prevStageCanvasRef.current && stage && crossfadeRef.current >= 1) {
-      const dCtx = display.getContext('2d')!
       dCtx.setTransform(1, 0, 0, 1, 0, 0)
-      dCtx.clearRect(0, 0, display.width, display.height)
-      dCtx.globalAlpha = 1 - trans
-      dCtx.drawImage(prevStageCanvasRef.current, 0, 0)
-      dCtx.globalAlpha = trans
-      dCtx.drawImage(stage, 0, 0)
-      dCtx.globalAlpha = 1
+      drawMacbookCrossfadeContain(
+        dCtx,
+        prevStageCanvasRef.current,
+        stage,
+        display.width,
+        display.height,
+        trans,
+      )
       texture.needsUpdate = true
       return
     }
@@ -254,20 +345,14 @@ function MacBookModel({ howIBuildStage }: { howIBuildStage: number }) {
     if (mode === 'stage' && pm === 'stage') return
     lastCfCompositeModeRef.current = mode
 
-    const dCtx = display.getContext('2d')!
     dCtx.setTransform(1, 0, 0, 1, 0, 0)
-    dCtx.clearRect(0, 0, display.width, display.height)
 
     if (mode === 'hero' || !stage) {
-      dCtx.drawImage(hero, 0, 0)
+      drawMacbookScreenContain(dCtx, hero, display.width, display.height)
     } else if (mode === 'stage') {
-      dCtx.drawImage(stage, 0, 0)
+      drawMacbookScreenContain(dCtx, stage, display.width, display.height)
     } else {
-      dCtx.globalAlpha = 1 - cf
-      dCtx.drawImage(hero, 0, 0)
-      dCtx.globalAlpha = cf
-      dCtx.drawImage(stage, 0, 0)
-      dCtx.globalAlpha = 1
+      drawMacbookCrossfadeContain(dCtx, hero, stage, display.width, display.height, cf)
     }
 
     texture.needsUpdate = true
@@ -368,11 +453,12 @@ function MacBookOverlay({ howIBuildStage }: { howIBuildStage: number }) {
       )}
       <Canvas
         camera={{ position: [0, 0.36, 6.2], fov: 31 }}
-        gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-        dpr={[1, 2]}
+        gl={{ antialias: false, alpha: true, powerPreference: 'low-power' }}
+        frameloop="demand"
+        dpr={[1, 1.5]}
         onCreated={({ gl }) => {
-          gl.toneMapping = THREE.ACESFilmicToneMapping
-          gl.toneMappingExposure = 1.0
+          gl.toneMapping = THREE.ReinhardToneMapping
+          gl.toneMappingExposure = 0.9
           gl.outputColorSpace = THREE.SRGBColorSpace
         }}
         style={{
@@ -381,12 +467,10 @@ function MacBookOverlay({ howIBuildStage }: { howIBuildStage: number }) {
           inset: 0,
         }}
       >
-        <ambientLight intensity={0.55} />
-        <directionalLight position={[3, 4, 4]} intensity={1.6} color="#ffffff" />
-        <directionalLight position={[-2, 2, 2]} intensity={0.35} color="#e8d8c0" />
-        <directionalLight position={[0, 2, -4]} intensity={0.8} color="#e8d8c0" />
-        <directionalLight position={[0, -3, 0]} intensity={0.4} color="#e8d8c0" />
-        <fog attach="fog" args={['#000000', 12, 24]} />
+        <ambientLight intensity={0.35} />
+        <directionalLight position={[3, 5, 4]} intensity={1.4} color="#ffffff" />
+        <directionalLight position={[-3, 1, -3]} intensity={0.55} color="#c8a96e" />
+        <directionalLight position={[0, -2, 3]} intensity={0.18} color="#ffffff" />
         <Suspense fallback={null}>
           <MacBookModel howIBuildStage={howIBuildStage} />
         </Suspense>
@@ -397,32 +481,35 @@ function MacBookOverlay({ howIBuildStage }: { howIBuildStage: number }) {
           rotateSpeed={0.5}
           onStart={() => setOrbitHintVisible(false)}
         />
-        <EffectComposer multisampling={4}>
-          <Bloom intensity={0.18} luminanceThreshold={0.35} luminanceSmoothing={0.9} mipmapBlur radius={0.3} />
-        </EffectComposer>
       </Canvas>
     </div>
   )
 }
 
-/** Fixed 3D MacBook reserves ~58% of the viewport — only show on wide screens so phones/tablets stay readable. */
+/** Floating MacBook — wide desktop OR landscape mobile (≥680 px wide). */
 const MACBOOK_MIN_WIDTH = 1180
+// Landscape phones/tablets: show the full 3D experience when rotated
+const MACBOOK_LANDSCAPE_MQ = '(orientation: landscape) and (min-width: 680px)'
 
 function subscribeMacbookViewport(cb: () => void) {
-  const mq = window.matchMedia(`(min-width: ${MACBOOK_MIN_WIDTH}px)`)
-  mq.addEventListener('change', cb)
-  return () => mq.removeEventListener('change', cb)
+  const mqW = window.matchMedia(`(min-width: ${MACBOOK_MIN_WIDTH}px)`)
+  const mqL = window.matchMedia(MACBOOK_LANDSCAPE_MQ)
+  mqW.addEventListener('change', cb)
+  mqL.addEventListener('change', cb)
+  return () => {
+    mqW.removeEventListener('change', cb)
+    mqL.removeEventListener('change', cb)
+  }
 }
 
 function getMacbookViewportWideEnough() {
-  return window.matchMedia(`(min-width: ${MACBOOK_MIN_WIDTH}px)`).matches
+  return (
+    window.matchMedia(`(min-width: ${MACBOOK_MIN_WIDTH}px)`).matches ||
+    window.matchMedia(MACBOOK_LANDSCAPE_MQ).matches
+  )
 }
 
-export default function SharedMacBook({
-  howIBuildStage,
-}: {
-  howIBuildStage: number
-}) {
+export default function SharedMacBook({ howIBuildStage }: { howIBuildStage: number }) {
   const wideEnough = useSyncExternalStore(
     subscribeMacbookViewport,
     getMacbookViewportWideEnough,
@@ -436,4 +523,4 @@ export default function SharedMacBook({
   )
 }
 
-useGLTF.preload('/models/macbook_opt.glb')
+useGLTF.preload(MACBOOK_GLTF_URL)

@@ -1,9 +1,37 @@
+import { HOW_I_BUILD_STAGES } from '@/lib/how-i-build-stages'
+
 export const SCREEN_W = 1600
 export const SCREEN_H = 1000
 export const TEX_SCALE = 2
 
 const W = SCREEN_W
 const H = SCREEN_H
+
+/** Matches the floating MacBook preview to the active How I build stage (same copy as the section). */
+function drawHowIBuildStageRibbon(ctx: CanvasRenderingContext2D, stageIndex: number) {
+  const meta = HOW_I_BUILD_STAGES[stageIndex]
+  if (!meta) return
+  const pillW = Math.min(420, W - 72)
+  const x = W - pillW - 36
+  const y = 74
+  ctx.save()
+  roundRect(ctx, x, y, pillW, 54, 10)
+  ctx.fillStyle = 'rgba(8,8,8,0.94)'
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(201,168,76,0.45)'
+  ctx.lineWidth = 1
+  ctx.stroke()
+  ctx.fillStyle = '#C9A84C'
+  ctx.font = 'bold 10px ui-monospace, JetBrains Mono, monospace'
+  ctx.textAlign = 'left'
+  ctx.fillText(meta.label, x + 14, y + 22)
+  ctx.fillStyle = 'rgba(238,238,232,0.92)'
+  ctx.font = '500 12px -apple-system, BlinkMacSystemFont, sans-serif'
+  const title =
+    meta.title.length > 82 ? `${meta.title.slice(0, 79)}…` : meta.title
+  ctx.fillText(title, x + 14, y + 42)
+  ctx.restore()
+}
 
 function roundRect(
   ctx: CanvasRenderingContext2D,
@@ -214,22 +242,62 @@ function drawHeroRightPanel(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = 'rgba(200,169,110,0.12)'
   ctx.fillRect(818, 56, 1, 920)
 
+  /* Badge — mirrors live Hero “AVAILABLE FOR WORK” */
+  roundRect(ctx, 860, 112, 236, 30, 8)
+  ctx.fillStyle = 'rgba(201,168,76,0.14)'
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(201,168,76,0.42)'
+  ctx.lineWidth = 1
+  ctx.stroke()
+  ctx.fillStyle = '#C9A84C'
+  ctx.beginPath()
+  ctx.arc(878, 127, 5, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.font = 'bold 10px ui-monospace, JetBrains Mono, monospace'
+  ctx.textAlign = 'left'
+  ctx.fillText('AVAILABLE FOR WORK', 892, 132)
+
   ctx.fillStyle = '#EEEEE8'
-  ctx.font = '700 56px sans-serif'
-  ctx.fillText('ANSHUL', 860, 170)
+  ctx.font = '700 52px Syne, ui-sans-serif, sans-serif'
+  ctx.fillText('ANSHUL', 860, 218)
   ctx.fillStyle = '#C8A96E'
-  ctx.fillText('RAIBOLE', 860, 236)
+  ctx.fillText('RAIBOLE', 860, 278)
 
   ctx.fillStyle = '#C8A96E'
-  ctx.fillRect(860, 252, 480, 2)
+  ctx.fillRect(860, 294, 480, 2)
 
   ctx.fillStyle = 'rgba(238,238,232,0.45)'
-  ctx.font = '500 19px monospace'
-  ctx.fillText('Full-Stack Engineer', 860, 294)
-  ctx.fillText('AI & Data Science', 860, 320)
+  ctx.font = '500 17px ui-monospace, monospace'
+  ctx.fillText('Full-Stack Engineer', 860, 338)
+  ctx.fillText('AI & Data Science', 860, 366)
+
+  ctx.fillStyle = 'rgba(238,238,232,0.52)'
+  ctx.font = '400 14px Plus Jakarta Sans, ui-sans-serif, sans-serif'
+  ctx.fillText('Engineering intelligence. Building systems that matter.', 860, 408)
+  ctx.fillText('Leading development at KCC Infra, Pune.', 860, 432)
 
   ctx.fillStyle = 'rgba(200,169,110,0.1)'
-  ctx.fillRect(860, 350, 600, 1)
+  ctx.fillRect(860, 458, 600, 1)
+
+  /* CTA pills — echoes Hero buttons */
+  roundRect(ctx, 860, 478, 148, 36, 8)
+  ctx.fillStyle = 'rgba(201,168,76,0.18)'
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(201,168,76,0.45)'
+  ctx.stroke()
+  ctx.fillStyle = '#C9A84C'
+  ctx.font = 'bold 11px ui-monospace, monospace'
+  ctx.fillText('VIEW WORK →', 878, 502)
+  roundRect(ctx, 1022, 478, 158, 36, 8)
+  ctx.fillStyle = 'rgba(255,255,255,0.06)'
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(255,255,255,0.14)'
+  ctx.stroke()
+  ctx.fillStyle = 'rgba(238,238,232,0.85)'
+  ctx.fillText('DOWNLOAD CV ↓', 1042, 502)
+
+  ctx.fillStyle = 'rgba(200,169,110,0.1)'
+  ctx.fillRect(860, 538, 600, 1)
 
   const stats = [
     { num: '2+', label: 'YRS EXP' },
@@ -241,7 +309,7 @@ function drawHeroRightPanel(ctx: CanvasRenderingContext2D) {
     const col = i % 2
     const row = Math.floor(i / 2)
     const x = 860 + col * 300
-    const y = 380 + row * 185
+    const y = 568 + row * 185
 
     ctx.fillStyle = 'rgba(200,169,110,0.035)'
     ctx.fillRect(x, y, 275, 160)
@@ -320,7 +388,7 @@ export function drawHeroPhoto(canvas: HTMLCanvasElement, img: HTMLImageElement):
 
 /* ═══════════  Stage Screens  ═══════════ */
 
-function drawNotion(ctx: CanvasRenderingContext2D) {
+function drawNotion(ctx: CanvasRenderingContext2D, stage: number) {
   ctx.fillStyle = '#191919'
   ctx.fillRect(0, 0, W, H)
   drawMenuBar(ctx, 'Notion')
@@ -409,13 +477,14 @@ function drawNotion(ctx: CanvasRenderingContext2D) {
     ctx.fillText(row[1], 900, ry)
     if (i < rows.length - 1) {
       ctx.strokeStyle = 'rgba(255,255,255,0.05)'
-      ctx.beginPath(); ctx.moveTo(370, ry + 16); ctx.lineTo(1530, ry + 16); ctx.stroke()
+      ctx.beginPath(); ctx.moveTo(370, ry + 16); ctx.lineTo(1530, ry + 16);       ctx.stroke()
     }
   })
+  drawHowIBuildStageRibbon(ctx, stage)
   drawDock(ctx)
 }
 
-function drawFigma(ctx: CanvasRenderingContext2D) {
+function drawFigma(ctx: CanvasRenderingContext2D, stage: number) {
   ctx.fillStyle = '#1e1e1e'
   ctx.fillRect(0, 0, W, H)
   drawMenuBar(ctx, 'Figma')
@@ -490,10 +559,11 @@ function drawFigma(ctx: CanvasRenderingContext2D) {
     ctx.font = '12px -apple-system'
     ctx.fillText(p, 1356, 122 + i * 24)
   })
+  drawHowIBuildStageRibbon(ctx, stage)
   drawDock(ctx)
 }
 
-function drawVSCodeTokens(ctx: CanvasRenderingContext2D) {
+function drawVSCodeTokens(ctx: CanvasRenderingContext2D, stage: number) {
   ctx.fillStyle = '#1e1e1e'
   ctx.fillRect(0, 0, W, H)
   drawMenuBar(ctx, 'Code')
@@ -581,10 +651,11 @@ function drawVSCodeTokens(ctx: CanvasRenderingContext2D) {
   ctx.textAlign = 'right'
   ctx.fillText('UTF-8   Ln 4, Col 18  ', W - 20, H - 10)
   ctx.textAlign = 'left'
+  drawHowIBuildStageRibbon(ctx, stage)
   drawDock(ctx)
 }
 
-function drawVSCodeSplit(ctx: CanvasRenderingContext2D) {
+function drawVSCodeSplit(ctx: CanvasRenderingContext2D, stage: number) {
   ctx.fillStyle = '#1e1e1e'
   ctx.fillRect(0, 0, W, H)
   drawMenuBar(ctx, 'Code')
@@ -684,10 +755,11 @@ function drawVSCodeSplit(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = '#ffffff'
   ctx.font = '12px -apple-system'
   ctx.fillText('  main    0 errors    TypeScript', editorX + 12, H - 10)
+  drawHowIBuildStageRibbon(ctx, stage)
   drawDock(ctx)
 }
 
-function drawTerminalVitest(ctx: CanvasRenderingContext2D) {
+function drawTerminalVitest(ctx: CanvasRenderingContext2D, stage: number) {
   ctx.fillStyle = '#0d0d0d'
   ctx.fillRect(0, 0, W, H)
   drawMenuBar(ctx, 'Terminal')
@@ -732,10 +804,11 @@ function drawTerminalVitest(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = 'rgba(255,255,255,0.4)'
   ctx.font = '14px monospace'
   ctx.fillText('anshul@MacBook-Pro % █', 30, 640)
+  drawHowIBuildStageRibbon(ctx, stage)
   drawDock(ctx)
 }
 
-function drawVercel(ctx: CanvasRenderingContext2D) {
+function drawVercel(ctx: CanvasRenderingContext2D, stage: number) {
   ctx.fillStyle = '#171717'
   ctx.fillRect(0, 0, W, H)
   drawMenuBar(ctx, 'Chrome')
@@ -814,10 +887,11 @@ function drawVercel(ctx: CanvasRenderingContext2D) {
     ctx.fillText(score.label, sx, scoreY + 82)
   })
   ctx.textAlign = 'left'
+  drawHowIBuildStageRibbon(ctx, stage)
   drawDock(ctx)
 }
 
-function drawSlack(ctx: CanvasRenderingContext2D) {
+function drawSlack(ctx: CanvasRenderingContext2D, stage: number) {
   ctx.fillStyle = '#1a1a1a'
   ctx.fillRect(0, 0, W, H)
   drawMenuBar(ctx, 'Slack')
@@ -888,6 +962,7 @@ function drawSlack(ctx: CanvasRenderingContext2D) {
     ctx.font = '14px -apple-system'
     ctx.fillText(msg.text, 386, my + 32)
   })
+  drawHowIBuildStageRibbon(ctx, stage)
   drawDock(ctx)
 }
 
@@ -907,14 +982,14 @@ export function buildStageCanvas(stage: number): HTMLCanvasElement {
   ctx.scale(S, S)
 
   switch (stage) {
-    case 0:  drawNotion(ctx);         break
-    case 1:  drawFigma(ctx);          break
-    case 2:  drawVSCodeTokens(ctx);   break
-    case 3:  drawVSCodeSplit(ctx);    break
-    case 4:  drawTerminalVitest(ctx); break
-    case 5:  drawVercel(ctx);         break
-    case 6:  drawSlack(ctx);          break
-    default: drawNotion(ctx)
+    case 0:  drawNotion(ctx, stage);         break
+    case 1:  drawFigma(ctx, stage);          break
+    case 2:  drawVSCodeTokens(ctx, stage);   break
+    case 3:  drawVSCodeSplit(ctx, stage);    break
+    case 4:  drawTerminalVitest(ctx, stage); break
+    case 5:  drawVercel(ctx, stage);         break
+    case 6:  drawSlack(ctx, stage);          break
+    default: drawNotion(ctx, stage)
   }
 
   ctx.restore()

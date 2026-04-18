@@ -5,20 +5,23 @@ import { SmoothScroll } from '@/components/SmoothScroll'
 
 const syne = Syne({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
+  weight: ['700', '800'],          // display font — only bold weights used
   variable: '--font-display',
+  display: 'swap',
 })
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500'],          // body font — regular + medium only
   variable: '--font-body',
+  display: 'swap',
 })
 
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
-  weight: ['400', '500', '600'],
+  weight: ['400', '500'],          // mono font — regular + medium only
   variable: '--font-mono',
+  display: 'swap',
 })
 
 const SITE_URL = 'https://anshulraibole.dev'
@@ -81,8 +84,12 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <head />
-      <body className={`${syne.variable} ${plusJakarta.variable} ${ibmPlexMono.variable} noise`}>
+      <head>
+        {/* Preload above-the-fold assets */}
+        <link rel="preload" href="/images/anshul.png" as="image" type="image/png" />
+        <link rel="preload" href="/models/macbook_air_m2.glb" as="fetch" crossOrigin="anonymous" />
+      </head>
+      <body className={`${syne.variable} ${plusJakarta.variable} ${ibmPlexMono.variable}`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

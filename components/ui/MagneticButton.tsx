@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, type ReactNode, type CSSProperties } from 'react'
+import { useRef, useState, useEffect, type ReactNode, type CSSProperties } from 'react'
 import { motion, useSpring, useMotionValue } from 'framer-motion'
 import Link from 'next/link'
 
@@ -31,13 +31,18 @@ export default function MagneticButton({
 }: MagneticButtonProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [hovered, setHovered] = useState(false)
+  const [isTouch, setIsTouch] = useState(false)
   const x = useMotionValue(0)
   const y = useMotionValue(0)
   const springX = useSpring(x, SPRING)
   const springY = useSpring(y, SPRING)
 
+  useEffect(() => {
+    setIsTouch(window.matchMedia('(pointer: coarse)').matches)
+  }, [])
+
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!ref.current || disabled) return
+    if (!ref.current || disabled || isTouch) return
     const rect = ref.current.getBoundingClientRect()
     const centerX = rect.left + rect.width / 2
     const centerY = rect.top + rect.height / 2
@@ -69,7 +74,7 @@ export default function MagneticButton({
     letterSpacing: '0.15em',
     textTransform: 'uppercase' as const,
     textDecoration: 'none',
-    cursor: disabled ? 'default' : 'none',
+    cursor: disabled ? 'default' : isTouch ? 'pointer' : 'none',
     transition: 'background 0.25s ease, color 0.25s ease',
     borderRadius: variant === 'compact' ? '100px' : '2px',
     padding: variant === 'compact' ? '8px 20px' : '12px 28px',

@@ -1,6 +1,6 @@
 'use client'
 
-import { useLayoutEffect, useRef } from 'react'
+import { useCallback, useLayoutEffect, useRef } from 'react'
 import { Github, Linkedin, Mail } from 'lucide-react'
 import { gsap } from '@/lib/gsap'
 import { useLenis } from '@/lib/lenis-context'
@@ -10,12 +10,26 @@ import TextScramble from '@/components/ui/TextScramble'
 import Typewriter from '@/components/ui/Typewriter'
 import AnimatedBorder from '@/components/ui/AnimatedBorder'
 import Dock from '@/components/ui/Dock'
+import { usePerformanceLiteMode } from '@/lib/use-performance-mode'
 
 export default function Hero() {
   const sectionRef = useRef<HTMLElement>(null)
   const leftRef = useRef<HTMLDivElement>(null)
   const scrollIndicatorRef = useRef<HTMLDivElement>(null)
   const getLenis = useLenis()
+  const performanceLite = usePerformanceLiteMode()
+
+  const scrollToProjects = useCallback(() => {
+    const lenis = getLenis?.()
+    if (lenis) {
+      lenis.scrollTo('#projects')
+      return
+    }
+    document.getElementById('projects')?.scrollIntoView({
+      behavior: performanceLite ? 'auto' : 'smooth',
+      block: 'start',
+    })
+  }, [getLenis, performanceLite])
 
   useLayoutEffect(() => {
     const section = sectionRef.current
@@ -76,7 +90,6 @@ export default function Hero() {
           height: '200%',
           top: '-50%',
           transformOrigin: 'center bottom',
-          animation: 'grid-drift 8s linear infinite',
           WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.5) 30%, rgba(0,0,0,0.5) 70%, transparent 100%)',
           maskImage: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.5) 30%, rgba(0,0,0,0.5) 70%, transparent 100%)',
         }}>
@@ -217,7 +230,7 @@ export default function Hero() {
         </p>
 
         <div className="hero-buttons" style={{ display: 'flex', gap: '16px', marginBottom: '1.5rem' }}>
-          <MagneticButton onClick={() => getLenis?.()?.scrollTo('#projects')}>
+          <MagneticButton onClick={scrollToProjects}>
             VIEW WORK →
           </MagneticButton>
           <MagneticButton href="/resume">
@@ -239,13 +252,24 @@ export default function Hero() {
       {/* Scroll indicator */}
       <div
         ref={scrollIndicatorRef}
-        className="pointer-events-none absolute left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-3"
+        className="hero-scroll-indicator pointer-events-none absolute left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-3"
         style={{ bottom: 'max(2rem, env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="h-10 w-px bg-[rgba(238,238,232,0.12)]" />
         <span className="text-[9px] tracking-[0.4em] text-[var(--muted)]" style={{ fontFamily: 'var(--font-mono)' }}>
           SCROLL
         </span>
+      </div>
+
+      {/* Portrait-mobile only: tilt hint — tells user to rotate for 3D MacBook */}
+      <div className="mobile-rotate-hint" aria-hidden="true">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 2v6h-6" />
+          <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+          <path d="M3 22v-6h6" />
+          <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+        </svg>
+        ROTATE FOR 3D
       </div>
     </section>
   )

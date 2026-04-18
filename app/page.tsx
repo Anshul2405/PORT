@@ -6,20 +6,20 @@ import Loader from '@/components/Loader'
 import Navbar from '@/components/Navbar'
 import Hero from '@/components/Hero'
 import HowIBuild from '@/components/HowIBuild'
-
-import About from '@/components/About'
-import Experience from '@/components/Experience'
-import Projects from '@/components/Projects'
-import Skills from '@/components/Skills'
-import CurrentlyBuilding from '@/components/CurrentlyBuilding'
-import Contact from '@/components/Contact'
-import CustomCursor from '@/components/CustomCursor'
-import NavDots from '@/components/NavDots'
 import { TerminalProvider } from '@/lib/terminal-context'
-import TerminalOverlay from '@/components/TerminalOverlay'
 import { usePerformanceLiteMode } from '@/lib/use-performance-mode'
 
-const SharedMacBook = dynamic(() => import('@/components/SharedMacBook'), { ssr: false })
+// Code-split everything below the hero fold so it doesn't block initial parse
+const SharedMacBook    = dynamic(() => import('@/components/SharedMacBook'),    { ssr: false })
+const About            = dynamic(() => import('@/components/About'))
+const Experience       = dynamic(() => import('@/components/Experience'))
+const Projects         = dynamic(() => import('@/components/Projects'))
+const Skills           = dynamic(() => import('@/components/Skills'))
+const CurrentlyBuilding = dynamic(() => import('@/components/CurrentlyBuilding'))
+const Contact          = dynamic(() => import('@/components/Contact'))
+const CustomCursor     = dynamic(() => import('@/components/CustomCursor'),     { ssr: false })
+const NavDots          = dynamic(() => import('@/components/NavDots'),          { ssr: false })
+const TerminalOverlay  = dynamic(() => import('@/components/TerminalOverlay'),  { ssr: false })
 
 export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false)
